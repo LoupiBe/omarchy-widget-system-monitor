@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.loupibe.system-monitor",
+  "name": "System Monitor",
+  "version": "1.0.0",
+  "author": "LoupiBe",
+  "license": "MIT",
+  "description": "Live CPU, RAM, and bandwidth monitor with lightweight detail popup panel for the Omarchy top bar.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "System Monitor",
+    "description": "Live CPU, RAM, and bandwidth monitor with overview panel",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "left",
+    "defaults": {
+      "refreshIntervalSec": 2
+    },
+    "schema": [
+      {
+        "key": "refreshIntervalSec",
+        "type": "integer",
+        "label": "Refresh interval (seconds)",
+        "min": 1,
+        "max": 10,
+        "step": 1,
+        "defaultValue": 2
+      }
+    ]
+  }
+}
