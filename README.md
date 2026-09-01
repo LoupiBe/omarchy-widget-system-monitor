@@ -6,7 +6,7 @@ A native top bar widget and popup overview panel for Omarchy Linux displaying li
 
 ## Features
 
-- **Top Bar Pill**: Live CPU %, RAM %, Download bandwidth, and Upload bandwidth (` 15%  󰍛 42%  󰇚 1.2 MB/s  󰕒 340 KB/s`) with load-based alert colors.
+- **Top Bar Pill**: Live CPU %, RAM %, Download bandwidth, and Upload bandwidth (`15%    42% 󰍛   1.2 MB/s 󰇚   340 KB/s 󰕒`) with load-based alert colors.
 - **Popup Overview Panel (Left-click)**:
   - **CPU**: Total load bar, load averages (1m, 5m, 15m), CPU model, core count, per-core mini meters, and temperature.
   - **Memory & Swap**: RAM used / total, available RAM, and swap breakdown with progress bar.
