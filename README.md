@@ -56,6 +56,12 @@ The refresh interval can be customized in `~/.config/omarchy/shell.json`:
 omarchy plugin remove io.github.loupibe.system-monitor
 ```
 
+## Dependencies
+
+- **Linux `/proc` & `/sys`**: Used by `stats.sh` for lightweight, zero-dependency metrics collection (standard on all Linux systems).
+- **`btop`** *(optional)*: For the quick-launch task manager action (standard in Omarchy).
+- **Nerd Font**: For bar glyphs and panel icons (standard in Omarchy).
+
 ## License
 
 MIT © 2026 LoupiBe
