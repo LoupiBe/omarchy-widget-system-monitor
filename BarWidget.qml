@@ -53,6 +53,18 @@ Panel {
   }
 
   Timer {
+    id: procWatchdog
+    interval: 2000
+    repeat: false
+    running: statsProc.running
+    onTriggered: {
+      if (statsProc.running) {
+        statsProc.running = false
+      }
+    }
+  }
+
+  Timer {
     interval: Math.max(1000, root.refreshIntervalSec * 1000)
     running: true
     repeat: true
@@ -94,6 +106,7 @@ Panel {
           width: Style.space(34)
           horizontalAlignment: Text.AlignRight
           text: root.stats.cpuPercent + "%"
+          textFormat: Text.PlainText
           color: root.barForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
@@ -102,6 +115,7 @@ Panel {
         }
         Text {
           text: ""
+          textFormat: Text.PlainText
           color: root.barForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
@@ -118,6 +132,7 @@ Panel {
           width: Style.space(34)
           horizontalAlignment: Text.AlignRight
           text: Math.round(root.stats.memPercent) + "%"
+          textFormat: Text.PlainText
           color: root.barForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
@@ -126,6 +141,7 @@ Panel {
         }
         Text {
           text: "󰍛"
+          textFormat: Text.PlainText
           color: root.barForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
@@ -142,6 +158,7 @@ Panel {
           width: Style.space(76)
           horizontalAlignment: Text.AlignRight
           text: Model.formatSpeed(root.stats.rxSpeed)
+          textFormat: Text.PlainText
           color: root.barForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
@@ -150,6 +167,7 @@ Panel {
         }
         Text {
           text: "󰇚"
+          textFormat: Text.PlainText
           color: root.barForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
@@ -166,6 +184,7 @@ Panel {
           width: Style.space(76)
           horizontalAlignment: Text.AlignRight
           text: Model.formatSpeed(root.stats.txSpeed)
+          textFormat: Text.PlainText
           color: root.barForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
@@ -174,6 +193,7 @@ Panel {
         }
         Text {
           text: "󰕒"
+          textFormat: Text.PlainText
           color: root.barForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
@@ -193,6 +213,7 @@ Panel {
 
       Text {
         text: " " + root.stats.cpuPercent + "%"
+        textFormat: Text.PlainText
         color: root.barForeground
         font.family: root.barFontFamily
         font.pixelSize: Style.font.caption
@@ -200,6 +221,7 @@ Panel {
       }
       Text {
         text: "󰍛 " + Math.round(root.stats.memPercent) + "%"
+        textFormat: Text.PlainText
         color: root.barForeground
         font.family: root.barFontFamily
         font.pixelSize: Style.font.caption
@@ -243,6 +265,7 @@ Panel {
               spacing: Style.space(2)
               Text {
                 text: "System Monitor"
+                textFormat: Text.PlainText
                 color: root.barForeground
                 font.family: root.barFontFamily
                 font.pixelSize: Style.font.title
@@ -250,6 +273,7 @@ Panel {
               }
               Text {
                 text: (root.stats.cpuTemp ? root.stats.cpuTemp + " · " : "") + (root.stats.uptime ? "Uptime " + root.stats.uptime : "")
+                textFormat: Text.PlainText
                 color: Qt.darker(root.barForeground, 1.4)
                 font.family: root.barFontFamily
                 font.pixelSize: Style.font.caption
@@ -280,6 +304,7 @@ Panel {
             width: parent.width
             Text {
               text: "CPU LOAD"
+              textFormat: Text.PlainText
               color: Qt.darker(root.barForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.caption
@@ -288,6 +313,7 @@ Panel {
             Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
             Text {
               text: root.stats.cpuPercent + "%"
+              textFormat: Text.PlainText
               color: root.stats.cpuPercent > 85 ? Color.urgent : (root.stats.cpuPercent > 65 ? Color.accent : root.barForeground)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
@@ -332,6 +358,7 @@ Panel {
                   spacing: Style.space(2)
                   Text {
                     text: modelData.label + " " + modelData.percent + "%"
+                    textFormat: Text.PlainText
                     font.pixelSize: Style.space(9)
                     font.family: root.barFontFamily
                     color: Qt.darker(root.barForeground, 1.3)
@@ -360,6 +387,7 @@ Panel {
             spacing: Style.space(8)
             Text {
               text: "Load: " + root.stats.load1 + ", " + root.stats.load5 + ", " + root.stats.load15
+              textFormat: Text.PlainText
               color: Qt.darker(root.barForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
@@ -367,6 +395,7 @@ Panel {
             Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2); height: 1 }
             Text {
               text: root.stats.coreCount + " Cores"
+              textFormat: Text.PlainText
               color: Qt.darker(root.barForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
@@ -385,6 +414,7 @@ Panel {
             width: parent.width
             Text {
               text: "MEMORY"
+              textFormat: Text.PlainText
               color: Qt.darker(root.barForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.caption
@@ -393,6 +423,7 @@ Panel {
             Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
             Text {
               text: Math.round(root.stats.memPercent) + "% (" + Model.formatKb(root.stats.memUsedKb) + " / " + Model.formatKb(root.stats.memTotalKb) + ")"
+              textFormat: Text.PlainText
               color: root.stats.memPercent > 85 ? Color.urgent : (root.stats.memPercent > 70 ? Color.accent : root.barForeground)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
@@ -424,6 +455,7 @@ Panel {
             spacing: Style.space(8)
             Text {
               text: "Avail: " + Model.formatKb(root.stats.memAvailKb)
+              textFormat: Text.PlainText
               color: Qt.darker(root.barForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
@@ -431,6 +463,7 @@ Panel {
             Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2); height: 1 }
             Text {
               text: "Swap: " + Model.formatKb(root.stats.swapUsedKb) + " / " + Model.formatKb(root.stats.swapTotalKb)
+              textFormat: Text.PlainText
               color: Qt.darker(root.barForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
@@ -449,6 +482,7 @@ Panel {
             width: parent.width
             Text {
               text: "NETWORK (" + root.stats.netIface + ")"
+              textFormat: Text.PlainText
               color: Qt.darker(root.barForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.caption
@@ -457,6 +491,7 @@ Panel {
             Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
             Text {
               text: "Live Traffic"
+              textFormat: Text.PlainText
               color: Qt.darker(root.barForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.caption
@@ -480,12 +515,14 @@ Panel {
                   spacing: Style.space(6)
                   Text {
                     text: "󰇚"
+                    textFormat: Text.PlainText
                     color: Color.accent
                     font.family: root.barFontFamily
                     font.pixelSize: Style.font.body
                   }
                   Text {
                     text: Model.formatSpeed(root.stats.rxSpeed)
+                    textFormat: Text.PlainText
                     color: root.barForeground
                     font.family: root.barFontFamily
                     font.pixelSize: Style.font.body
@@ -494,6 +531,7 @@ Panel {
                 }
                 Text {
                   text: "Total: " + Model.formatBytes(root.stats.netRxBytes)
+                  textFormat: Text.PlainText
                   color: Qt.darker(root.barForeground, 1.4)
                   font.family: root.barFontFamily
                   font.pixelSize: Style.font.bodySmall
@@ -514,12 +552,14 @@ Panel {
                   spacing: Style.space(6)
                   Text {
                     text: "󰕒"
+                    textFormat: Text.PlainText
                     color: Qt.lighter(Color.accent, 1.2)
                     font.family: root.barFontFamily
                     font.pixelSize: Style.font.body
                   }
                   Text {
                     text: Model.formatSpeed(root.stats.txSpeed)
+                    textFormat: Text.PlainText
                     color: root.barForeground
                     font.family: root.barFontFamily
                     font.pixelSize: Style.font.body
@@ -528,6 +568,7 @@ Panel {
                 }
                 Text {
                   text: "Total: " + Model.formatBytes(root.stats.netTxBytes)
+                  textFormat: Text.PlainText
                   color: Qt.darker(root.barForeground, 1.4)
                   font.family: root.barFontFamily
                   font.pixelSize: Style.font.bodySmall
