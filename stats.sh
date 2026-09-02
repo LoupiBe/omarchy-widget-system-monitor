@@ -69,21 +69,80 @@ collect_metrics() {
   # 5. CPU model (max 64 characters, support x86, ARM, RISC-V)
   awk '/^(model name|Model|Hardware|Processor)[ \t]*:/ { sub(/^[^:]*:[ \t]*/, ""); print "cpu_model\t" substr($0, 1, 64); exit }' /proc/cpuinfo 2>/dev/null
 
-  # 6. CPU Temp (check thermal zones or hwmon with guarded reads)
-  checked=0
+  # 6. CPU Temp (prioritize dedicated CPU hardware sensors over generic ACPI zones)
   temp=""
-  for f in /sys/class/thermal/thermal_zone*/temp /sys/class/hwmon/hwmon*/temp*_input; do
-    [ "$checked" -ge 16 ] && break
-    [ -f "$f" ] || continue
-    checked=$((checked + 1))
-    val=""
-    if read -r -t 0.1 val < "$f" 2>/dev/null; then
-      if [ -n "$val" ] && [ "$val" -gt 1000 ] 2>/dev/null; then
-        temp="$val"
-        break
-      fi
-    fi
+
+  # 6a. Check known CPU hwmon drivers (Intel coretemp, AMD k10temp/zenpower, ARM cpu_thermal)
+  for hw in /sys/class/hwmon/hwmon*; do
+    [ -d "$hw" ] || continue
+    hname=""
+    [ -f "$hw/name" ] && read -r hname < "$hw/name" 2>/dev/null
+    case "$hname" in
+      coretemp|k10temp|zenpower|cpu_thermal|soc_thermal)
+        # Search for Package id 0, Tctl, Tdie, or Core 0 label
+        for lbl in "$hw"/temp*_label; do
+          [ -f "$lbl" ] || continue
+          label=""
+          read -r label < "$lbl" 2>/dev/null
+          case "$label" in
+            *"Package"*|*"Tctl"*|*"Tdie"*|*"Core 0"*)
+              inp="${lbl%_label}_input"
+              if [ -f "$inp" ] && read -r -t 0.1 val < "$inp" 2>/dev/null; then
+                if [ -n "$val" ] && [ "$val" -gt 1000 ] 2>/dev/null; then
+                  temp="$val"
+                  break 2
+                fi
+              fi
+              ;;
+          esac
+        done
+        # Fallback within CPU driver if no specific label matched
+        if [ -f "$hw/temp1_input" ] && read -r -t 0.1 val < "$hw/temp1_input" 2>/dev/null; then
+          if [ -n "$val" ] && [ "$val" -gt 1000 ] 2>/dev/null; then
+            temp="$val"
+            break
+          fi
+        fi
+        ;;
+    esac
   done
+
+  # 6b. Check thermal zones with explicit CPU/x86 package types
+  if [ -z "$temp" ]; then
+    for tz in /sys/class/thermal/thermal_zone*; do
+      [ -d "$tz" ] || continue
+      ztype=""
+      [ -f "$tz/type" ] && read -r ztype < "$tz/type" 2>/dev/null
+      case "$ztype" in
+        x86_pkg_temp|cpu-thermal|soc-thermal|cpu_thermal)
+          if [ -f "$tz/temp" ] && read -r -t 0.1 val < "$tz/temp" 2>/dev/null; then
+            if [ -n "$val" ] && [ "$val" -gt 1000 ] 2>/dev/null; then
+              temp="$val"
+              break
+            fi
+          fi
+          ;;
+      esac
+    done
+  fi
+
+  # 6c. Generic fallback if no dedicated CPU sensor was identified
+  if [ -z "$temp" ]; then
+    checked=0
+    for f in /sys/class/hwmon/hwmon*/temp1_input /sys/class/thermal/thermal_zone*/temp; do
+      [ "$checked" -ge 16 ] && break
+      [ -f "$f" ] || continue
+      checked=$((checked + 1))
+      val=""
+      if read -r -t 0.1 val < "$f" 2>/dev/null; then
+        if [ -n "$val" ] && [ "$val" -gt 1000 ] 2>/dev/null; then
+          temp="$val"
+          break
+        fi
+      fi
+    done
+  fi
+
   if [ -n "$temp" ]; then
     awk -v t="$temp" 'BEGIN { printf "cpu_temp\t%.0f°C\n", t / 1000 }'
   fi
