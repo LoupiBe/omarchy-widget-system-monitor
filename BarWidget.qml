@@ -873,19 +873,19 @@ Panel {
                 font.bold: true
               }
             }
-            Text {
-              text: "Total: " + Model.formatBytes(root.stats.netRxBytes)
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
             HistoryView {
               values: root.stats.rxHistory
               minVal: 0
               maxVal: Math.max.apply(null, [1024].concat(root.stats.rxHistory))
               graphColor: Color.accent
               visible: root.showNetworkHistory && root.stats.rxHistory.length > 1
+            }
+            Text {
+              text: "Total: " + Model.formatBytes(root.stats.netRxBytes)
+              textFormat: Text.PlainText
+              color: Qt.darker(root.barForeground, 1.4)
+              font.family: root.barFontFamily
+              font.pixelSize: Style.font.bodySmall
             }
           }
         }
@@ -917,19 +917,19 @@ Panel {
                 font.bold: true
               }
             }
-            Text {
-              text: "Total: " + Model.formatBytes(root.stats.netTxBytes)
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
             HistoryView {
               values: root.stats.txHistory
               minVal: 0
               maxVal: Math.max.apply(null, [1024].concat(root.stats.txHistory))
               graphColor: Qt.lighter(Color.accent, 1.2)
               visible: root.showNetworkHistory && root.stats.txHistory.length > 1
+            }
+            Text {
+              text: "Total: " + Model.formatBytes(root.stats.netTxBytes)
+              textFormat: Text.PlainText
+              color: Qt.darker(root.barForeground, 1.4)
+              font.family: root.barFontFamily
+              font.pixelSize: Style.font.bodySmall
             }
           }
         }
