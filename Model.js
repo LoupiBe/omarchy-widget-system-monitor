@@ -51,6 +51,12 @@ function createInitialState() {
     gpuMemUsedMb: 0,
     gpuMemTotalMb: 0,
     gpuName: "",
+    cpuHistory: [],
+    memHistory: [],
+    diskHistory: [],
+    rxHistory: [],
+    txHistory: [],
+    gpuHistory: [],
     load1: "0.00",
     load5: "0.00",
     load15: "0.00",
@@ -60,7 +66,7 @@ function createInitialState() {
   };
 }
 
-function parseStats(raw, prevState, nowMs) {
+function parseStats(raw, prevState, nowMs, historyLimit) {
   var now = safeNumber(nowMs, Date.now());
   if (now <= 0) now = Date.now();
   var state = (prevState && typeof prevState === "object") ? prevState : createInitialState();
@@ -229,8 +235,47 @@ function parseStats(raw, prevState, nowMs) {
   next.gpuMemTotalMb = Math.max(0, safeNumber(kv["gpu_mem_total_mb"], state.gpuMemTotalMb || 0));
   next.gpuName = sanitizeString(kv["gpu_name"] !== undefined ? kv["gpu_name"] : state.gpuName, 48, (state && state.gpuName) || "");
 
+  // 8. History timelines
+  var limit = safeNumber(historyLimit, 20);
+  next.cpuHistory = updateHistory(state.cpuHistory, next.cpuPercent, limit);
+  next.memHistory = updateHistory(state.memHistory, next.memPercent, limit);
+  next.diskHistory = updateHistory(state.diskHistory, next.diskPercent, limit);
+  next.rxHistory = updateHistory(state.rxHistory, next.rxSpeed, limit);
+  next.txHistory = updateHistory(state.txHistory, next.txSpeed, limit);
+  next.gpuHistory = updateHistory(state.gpuHistory, next.gpuPercent, limit);
+
   next.initialized = true;
   return next;
+}
+
+var SPARKLINE_CHARS = [" ", " ", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
+
+function generateSparkline(values, minVal, maxVal) {
+  if (!Array.isArray(values) || values.length === 0) return "";
+  var min = (minVal !== undefined && minVal !== null) ? minVal : Math.min.apply(null, values);
+  var max = (maxVal !== undefined && maxVal !== null) ? maxVal : Math.max.apply(null, values);
+  if (!isFinite(min)) min = 0;
+  if (!isFinite(max) || max <= min) max = min + 1;
+  var range = max - min;
+  var chars = "";
+  for (var i = 0; i < values.length; i++) {
+    var v = safeNumber(values[i], min);
+    var ratio = Math.max(0, Math.min(1, (v - min) / range));
+    var idx = Math.min(SPARKLINE_CHARS.length - 1, Math.floor(ratio * (SPARKLINE_CHARS.length - 1)));
+    chars += SPARKLINE_CHARS[idx];
+  }
+  return chars;
+}
+
+function updateHistory(historyArr, newValue, maxPoints) {
+  var limit = (typeof maxPoints === "number" && maxPoints > 0) ? Math.min(maxPoints, 120) : 20;
+  var arr = Array.isArray(historyArr) ? historyArr.slice(0) : [];
+  var val = safeNumber(newValue, 0);
+  arr.push(val);
+  if (arr.length > limit) {
+    arr = arr.slice(arr.length - limit);
+  }
+  return arr;
 }
 
 function formatSpeed(bytesPerSec) {
@@ -289,6 +334,8 @@ if (typeof module !== "undefined") {
   module.exports = {
     createInitialState: createInitialState,
     parseStats: parseStats,
+    generateSparkline: generateSparkline,
+    updateHistory: updateHistory,
     formatSpeed: formatSpeed,
     formatSpeedCompact: formatSpeedCompact,
     formatBytes: formatBytes,

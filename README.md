@@ -79,6 +79,13 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
   "panelShowMemory": true,
   "panelShowDisk": true,
   "panelShowNetwork": true,
+  "historyStyle": "sparkline",
+  "historyPoints": 20,
+  "showCpuHistory": true,
+  "showNetworkHistory": true,
+  "showMemoryHistory": false,
+  "showDiskHistory": false,
+  "showGpuHistory": false,
   "panelOrder": ["cpu", "memory", "storage", "network"],
   "cpuAlertPercent": 85,
   "gpuAlertPercent": 85,
@@ -102,6 +109,13 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
 | `panelShowMemory` | boolean | `true` | Show or hide the Memory section in the overview popup panel. |
 | `panelShowDisk` | boolean | `true` | Show or hide the Storage section in the overview popup panel. |
 | `panelShowNetwork` | boolean | `true` | Show or hide the Network section in the overview popup panel. |
+| `historyStyle` | string | `"sparkline"` | Style for timeline history graphs (`"sparkline"`, `"bars"`, `"area"`). |
+| `historyPoints` | integer | `20` | Number of history sample points to keep in timeline (5 to 60). |
+| `showCpuHistory` | boolean | `true` | Show timeline sparkline/graph in the CPU overview section. |
+| `showNetworkHistory` | boolean | `true` | Show timeline sparkline/graph for download/upload in Network section. |
+| `showMemoryHistory` | boolean | `false` | Show timeline sparkline/graph in the Memory overview section. |
+| `showDiskHistory` | boolean | `false` | Show timeline sparkline/graph in the Storage overview section. |
+| `showGpuHistory` | boolean | `false` | Show timeline sparkline/graph in the GPU overview section. |
 | `panelOrder` | list / string | `["cpu", "memory", "storage", "network"]` | Custom order of sections in the popup overview panel. |
 | `cpuAlertPercent` | integer | `85` | CPU % threshold to trigger urgent alert color (50 to 99). |
 | `gpuAlertPercent` | integer | `85` | GPU % threshold to trigger urgent alert color (50 to 99). |

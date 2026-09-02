@@ -566,7 +566,33 @@ test("Model.createInitialState includes default GPU fields", () => {
   assert.strictEqual(init.gpuMemUsedMb, 0);
   assert.strictEqual(init.gpuMemTotalMb, 0);
   assert.strictEqual(init.gpuName, "");
+  assert.deepStrictEqual(init.cpuHistory, []);
+  assert.deepStrictEqual(init.memHistory, []);
+  assert.deepStrictEqual(init.diskHistory, []);
+  assert.deepStrictEqual(init.rxHistory, []);
+  assert.deepStrictEqual(init.txHistory, []);
+  assert.deepStrictEqual(init.gpuHistory, []);
 });
+
+test("Model.generateSparkline accurately formats values into sparkline characters", () => {
+  assert.strictEqual(Model.generateSparkline([]), "");
+  assert.strictEqual(Model.generateSparkline(null), "");
+  const spark = Model.generateSparkline([0, 25, 50, 75, 100], 0, 100);
+  assert.strictEqual(spark.length, 5);
+  assert.strictEqual(spark[0], " ");
+  assert.strictEqual(spark[4], "█");
+});
+
+test("Model.updateHistory correctly caps array to max points", () => {
+  let hist = [];
+  for (let i = 1; i <= 25; i++) {
+    hist = Model.updateHistory(hist, i, 10);
+  }
+  assert.strictEqual(hist.length, 10);
+  assert.strictEqual(hist[0], 16);
+  assert.strictEqual(hist[9], 25);
+});
+
 
 
 

@@ -35,6 +35,13 @@
       "showGpu": false,
       "panelShowGpu": false,
       "gpuAlertPercent": 85,
+      "historyStyle": "sparkline",
+      "historyPoints": 20,
+      "showCpuHistory": true,
+      "showNetworkHistory": true,
+      "showMemoryHistory": false,
+      "showDiskHistory": false,
+      "showGpuHistory": false,
       "barOrder": ["cpu", "memory", "disk", "network"],
       "panelOrder": ["cpu", "memory", "storage", "network"]
     },
@@ -120,6 +127,51 @@
         "type": "boolean",
         "label": "Show Network in overview panel",
         "defaultValue": true
+      },
+      {
+        "key": "historyStyle",
+        "type": "string",
+        "label": "History timeline style ('sparkline', 'bars', 'area')",
+        "defaultValue": "sparkline"
+      },
+      {
+        "key": "historyPoints",
+        "type": "integer",
+        "label": "History sample count (timeline window)",
+        "min": 5,
+        "max": 60,
+        "step": 5,
+        "defaultValue": 20
+      },
+      {
+        "key": "showCpuHistory",
+        "type": "boolean",
+        "label": "Show timeline sparkline in CPU panel",
+        "defaultValue": true
+      },
+      {
+        "key": "showNetworkHistory",
+        "type": "boolean",
+        "label": "Show timeline sparkline in Network panel",
+        "defaultValue": true
+      },
+      {
+        "key": "showMemoryHistory",
+        "type": "boolean",
+        "label": "Show timeline sparkline in Memory panel",
+        "defaultValue": false
+      },
+      {
+        "key": "showDiskHistory",
+        "type": "boolean",
+        "label": "Show timeline sparkline in Storage panel",
+        "defaultValue": false
+      },
+      {
+        "key": "showGpuHistory",
+        "type": "boolean",
+        "label": "Show timeline sparkline in GPU panel",
+        "defaultValue": false
       },
       {
         "key": "panelOrder",

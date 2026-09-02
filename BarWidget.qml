@@ -29,6 +29,13 @@ Panel {
   property int gpuAlertPercent: setting("gpuAlertPercent", 85)
   property int memAlertPercent: setting("memAlertPercent", 85)
   property int diskAlertPercent: setting("diskAlertPercent", 90)
+  property string historyStyle: setting("historyStyle", "sparkline")
+  property int historyPoints: setting("historyPoints", 20)
+  property bool showCpuHistory: setting("showCpuHistory", true)
+  property bool showNetworkHistory: setting("showNetworkHistory", true)
+  property bool showMemoryHistory: setting("showMemoryHistory", false)
+  property bool showDiskHistory: setting("showDiskHistory", false)
+  property bool showGpuHistory: setting("showGpuHistory", false)
   property var barOrder: setting("barOrder", ["cpu", "memory", "disk", "network"])
   property var panelOrder: setting("panelOrder", ["cpu", "memory", "storage", "network"])
 
@@ -78,7 +85,7 @@ Panel {
   }
 
   function updateStats(rawText) {
-    stats = Model.parseStats(rawText, stats, Date.now())
+    stats = Model.parseStats(rawText, stats, Date.now(), root.historyPoints)
   }
 
   function launchBtop() {
@@ -352,6 +359,110 @@ Panel {
     }
   }
 
+  // --- History Timeline Visualizer Component ---
+  component HistoryView: Item {
+    id: histRoot
+    property var values: []
+    property real minVal: 0
+    property real maxVal: 100
+    property color graphColor: Color.accent
+    property string styleMode: root.historyStyle
+
+    width: parent ? parent.width : Style.space(200)
+    height: styleMode === "sparkline" ? sparkText.implicitHeight : (styleMode === "bars" ? Style.space(12) : Style.space(16))
+    visible: values && values.length > 1
+
+    // 1. Sparkline Style
+    Text {
+      id: sparkText
+      visible: histRoot.styleMode === "sparkline"
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      text: Model.generateSparkline(histRoot.values, histRoot.minVal, histRoot.maxVal)
+      textFormat: Text.PlainText
+      font.family: root.barFontFamily
+      font.pixelSize: Style.font.bodySmall
+      color: histRoot.graphColor
+      elide: Text.ElideNone
+      horizontalAlignment: Text.AlignRight
+    }
+
+    // 2. Micro-Bars Style
+    Row {
+      id: barsRow
+      visible: histRoot.styleMode === "bars"
+      anchors.fill: parent
+      spacing: Style.space(2)
+
+      Repeater {
+        model: histRoot.values
+        delegate: Item {
+          required property var modelData
+          required property int index
+          width: Math.max(2, (barsRow.width - (histRoot.values.length - 1) * Style.space(2)) / histRoot.values.length)
+          height: barsRow.height
+
+          Rectangle {
+            anchors.bottom: parent.bottom
+            width: parent.width
+            radius: 1
+            height: Math.max(2, parent.height * Math.max(0, Math.min(1, (modelData - histRoot.minVal) / Math.max(1, (histRoot.maxVal - histRoot.minVal)))))
+            color: histRoot.graphColor
+            opacity: 0.4 + 0.6 * (index / Math.max(1, histRoot.values.length - 1))
+          }
+        }
+      }
+    }
+
+    // 3. Smooth Area Canvas Style
+    Canvas {
+      id: areaCanvas
+      visible: histRoot.styleMode === "area"
+      anchors.fill: parent
+      onPaint: {
+        var ctx = getContext("2d");
+        ctx.clearRect(0, 0, width, height);
+        if (!histRoot.values || histRoot.values.length < 2) return;
+        var step = width / (histRoot.values.length - 1);
+        var range = Math.max(1, histRoot.maxVal - histRoot.minVal);
+
+        ctx.beginPath();
+        ctx.moveTo(0, height);
+        for (var i = 0; i < histRoot.values.length; i++) {
+          var norm = Math.max(0, Math.min(1, (histRoot.values[i] - histRoot.minVal) / range));
+          var y = height - (norm * (height - 2));
+          var x = i * step;
+          if (i === 0) ctx.lineTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.lineTo(width, height);
+        ctx.closePath();
+        ctx.fillStyle = Qt.rgba(histRoot.graphColor.r, histRoot.graphColor.g, histRoot.graphColor.b, 0.25);
+        ctx.fill();
+
+        ctx.beginPath();
+        for (var j = 0; j < histRoot.values.length; j++) {
+          var n = Math.max(0, Math.min(1, (histRoot.values[j] - histRoot.minVal) / range));
+          var py = height - (n * (height - 2));
+          var px = j * step;
+          if (j === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = histRoot.graphColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      Connections {
+        target: root
+        function onStatsChanged() {
+          if (areaCanvas.visible) areaCanvas.requestPaint();
+        }
+      }
+    }
+  }
+
   // --- Section Components for Overview Panel ---
   Component {
     id: cpuSectionComponent
@@ -397,6 +508,15 @@ Panel {
           Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 200 } }
         }
+      }
+
+      // CPU History Timeline
+      HistoryView {
+        values: root.stats.cpuHistory
+        minVal: 0
+        maxVal: 100
+        graphColor: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
+        visible: root.showCpuHistory && root.stats.cpuHistory.length > 1
       }
 
       // Per-Core Mini Bars
@@ -513,6 +633,15 @@ Panel {
           }
         }
 
+        // GPU History Timeline
+        HistoryView {
+          values: root.stats.gpuHistory
+          minVal: 0
+          maxVal: 100
+          graphColor: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.barForeground)
+          visible: root.showGpuHistory && root.stats.gpuHistory.length > 1
+        }
+
         Row {
           width: parent.width
           visible: root.stats.gpuMemTotalMb > 0
@@ -573,6 +702,15 @@ Panel {
           Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 200 } }
         }
+      }
+
+      // Memory History Timeline
+      HistoryView {
+        values: root.stats.memHistory
+        minVal: 0
+        maxVal: 100
+        graphColor: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
+        visible: root.showMemoryHistory && root.stats.memHistory.length > 1
       }
 
       Row {
@@ -641,6 +779,15 @@ Panel {
           Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 200 } }
         }
+      }
+
+      // Storage History Timeline
+      HistoryView {
+        values: root.stats.diskHistory
+        minVal: 0
+        maxVal: 100
+        graphColor: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+        visible: root.showDiskHistory && root.stats.diskHistory.length > 1
       }
 
       Row {
@@ -729,6 +876,13 @@ Panel {
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
             }
+            HistoryView {
+              values: root.stats.rxHistory
+              minVal: 0
+              maxVal: Math.max.apply(null, [1024].concat(root.stats.rxHistory))
+              graphColor: Color.accent
+              visible: root.showNetworkHistory && root.stats.rxHistory.length > 1
+            }
           }
         }
 
@@ -765,6 +919,13 @@ Panel {
               color: Qt.darker(root.barForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
+            }
+            HistoryView {
+              values: root.stats.txHistory
+              minVal: 0
+              maxVal: Math.max.apply(null, [1024].concat(root.stats.txHistory))
+              graphColor: Qt.lighter(Color.accent, 1.2)
+              visible: root.showNetworkHistory && root.stats.txHistory.length > 1
             }
           }
         }
