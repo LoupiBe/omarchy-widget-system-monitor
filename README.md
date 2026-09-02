@@ -1,12 +1,14 @@
 # System Monitor for Omarchy
 
-A native top bar widget and popup overview panel for Omarchy Linux displaying live CPU, RAM, and bandwidth activity.
+A native top bar widget and popup overview panel for Omarchy Linux displaying live CPU, GPU, RAM, storage, and bandwidth activity with configurable sparkline history timelines.
 
 ![System Monitor preview](preview.png)
 
 ## ✨ Unique Features & Highlights
 
 - ⚡ **Zero-Dependency Native Collector**: Directly queries Linux `/proc` and `/sys` interfaces with pure POSIX shell and AWK. No Python daemon, Node.js runtime, or background services required (~15–20ms execution per tick).
+- 📈 **Real-Time Sparklines & History Timelines**: In-memory sliding window tracking with sub-millisecond rendering. Choose between minimalist monospace block sparklines (` ▂▃▄▅▆▇█`), micro-bars, or smooth area curves.
+- 🎮 **Multi-Vendor GPU Load & VRAM Monitoring**: Supports NVIDIA (`nvidia-smi` with timeout protection), AMD (`gpu_busy_percent`), and Intel (`gt_act_freq_mhz`) graphics adapters in both the top bar and overview panel.
 - 📏 **Jitter-Free Fixed Layout (Zero Horizontal Shift)**: Each top bar metric slot uses calibrated fixed-width containers with right-aligned typography. The bar never shifts, bounces, or resizes when metric digits change length (e.g. going from `9%` to `10%` to `100%` or `<1 KB/s` to `12.5 MB/s`).
 - 🌡️ **Accurate CPU Package Temperature**: Automatically prioritizes dedicated CPU hardware sensors (Intel `coretemp`, AMD `k10temp`/`zenpower`, ARM SoC) over generic motherboard/ACPI ambient zones to report exact die temperatures matching `btop`.
 - 🔀 **Independent Bar vs. Popup Configuration**: Customize what appears in your top bar pill separately from what is displayed in the popup overview panel (e.g. keep the bar minimal while showing all details in the popup).
@@ -17,21 +19,42 @@ A native top bar widget and popup overview panel for Omarchy Linux displaying li
 ## 📊 Feature Breakdown
 
 ### 1. Top Bar Pill
-- **Live Metrics**: CPU usage (%), RAM usage (%), Storage/Home partition (%), Download bandwidth, and Upload bandwidth (`15%    42% 󰍛   44% (68G) 󰋊   1.2 MB/s 󰇚   340 KB/s 󰕒`).
+- **Live Metrics**: CPU usage (%), GPU usage (%), RAM usage (%), Storage/Home partition (%), Download bandwidth, and Upload bandwidth (`15%    42% 󰍛   44% (68G) 󰋊   1.2 MB/s 󰇚   340 KB/s 󰕒`).
 - **Zero Layout Jitter**: Fixed slot widths guarantee neighboring top bar widgets remain perfectly stationary on every refresh tick.
 - **Dynamic Orientation**: Seamlessly adapts between horizontal and vertical bar layouts.
-- **Threshold Alert Colors**: Color transitions to warning and urgent accent colors when CPU, Memory, or Disk cross configured alert thresholds.
+- **Threshold Alert Colors**: Color transitions to warning and urgent accent colors when CPU, GPU, Memory, or Disk cross configured alert thresholds.
 - **Customizable Order**: Rearrange pill slots (e.g. `["disk", "cpu", "memory", "network"]` or `"cpu, memory, network"`).
 
 ### 2. Overview Popup Panel (Left-Click)
 - **Header Summary**: Real-time CPU die temperature, system uptime, and a quick-launch **`btop`** task manager button.
-- **CPU Load Section**: Overall utilization percentage, dynamic progress bar, 1m/5m/15m load averages, core count, and per-core mini load bars (supporting up to 64 cores).
-- **Network Section**: Active network interface name, real-time download and upload transfer rates, and cumulative session data transfer totals.
-- **Memory & Swap Section**: Used / total RAM, available RAM, and swap space breakdown with visual progress bar.
-- **Storage Section**: Primary `$HOME` partition mount path, used / total disk capacity, free space remaining, and utilization progress bar.
+- **CPU Load Section**: Overall utilization percentage, dynamic progress bar, optional timeline history graph, 1m/5m/15m load averages, core count, and per-core mini load bars (supporting up to 64 cores).
+- **GPU Section (Optional)**: Embedded GPU load percentage, die temperature, progress bar, optional timeline history graph, and dedicated VRAM used / total metrics.
+- **Memory & Swap Section**: Used / total RAM, available RAM, optional timeline history graph, and swap space breakdown with visual progress bar.
+- **Storage Section**: Primary `$HOME` partition mount path, used / total disk capacity, free space remaining, optional timeline history graph, and utilization progress bar.
+- **Network Section**: Active network interface name, live traffic header, real-time download and upload transfer rates with dedicated sparklines directly below live speeds, and cumulative session data transfer totals at the bottom.
 - **Section Reordering**: Set any section order you prefer (e.g. `["cpu", "network", "memory", "storage"]`).
 
-### 3. Mouse & Keyboard Shortcuts
+### 3. Timeline History Styles & Sizing
+
+The overview panel includes an integrated timeline engine that tracks historical trends across all metric sections.
+
+#### Graph Styles (`historyStyle`)
+- **`"sparkline"`** *(Default)*: Minimalist Unicode monospace block character sparkline (` ▂▃▄▅▆▇█`). Zero canvas overhead and ultra-crisp typography.
+- **`"bars"`**: Discrete vertical micro-bars with progressive opacity gradients.
+- **`"area"`**: Smooth anti-aliased shaded curve graph with subtle accent fill.
+
+#### Height Tiers (`historySize`)
+Configure the vertical graph height uniformly across all sections:
+
+| Tier | Height | Multiplier | Best For |
+|---|:---:|:---:|---|
+| **`"micro"`** | `8 px` | $1.0\times$ | Ultra-compact overview panels |
+| **`"small"`** | `14 px` | $1.75\times$ | Compact, subtle timeline visualization |
+| **`"normal"`** | `20 px` | $2.5\times$ | **Default** — Balanced clarity and aesthetics |
+| **`"big"`** | `30 px` | $3.75\times$ | Expanded trend monitoring |
+| **`"huge"`** | `40 px` | $5.0\times$ | Maximum visibility ($5\times$ micro) |
+
+### 4. Mouse & Keyboard Shortcuts
 - **Left-Click**: Toggle overview popup panel.
 - **Right-Click**: Instantly open or focus `btop` in a floating terminal.
 - **Middle-Click**: Force immediate metrics refresh.
@@ -114,7 +137,7 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
 | `historySize` | string | `"normal"` | Height of history graphs (`"micro"` [8px], `"small"` [14px], `"normal"` [20px], `"big"` [30px], `"huge"` [40px]). |
 | `historyPoints` | integer | `20` | Number of history sample points to keep in timeline (5 to 60). |
 | `showCpuHistory` | boolean | `true` | Show timeline sparkline/graph in the CPU overview section. |
-| `showNetworkHistory` | boolean | `true` | Show timeline sparkline/graph for download/upload in Network section. |
+| `showNetworkHistory` | boolean | `true` | Show timeline sparklines for download and upload in Network section. |
 | `showMemoryHistory` | boolean | `false` | Show timeline sparkline/graph in the Memory overview section. |
 | `showDiskHistory` | boolean | `false` | Show timeline sparkline/graph in the Storage overview section. |
 | `showGpuHistory` | boolean | `false` | Show timeline sparkline/graph in the GPU overview section. |
