@@ -146,7 +146,15 @@ collect_metrics() {
   if [ -n "$temp" ]; then
     awk -v t="$temp" 'BEGIN { printf "cpu_temp\t%.0f°C\n", t / 1000 }'
   fi
+
+  # 7. Disk metrics for $HOME partition
+  df -k "${HOME:-/}" 2>/dev/null | awk '
+    NR == 2 {
+      printf "disk_total_kb\t%s\ndisk_used_kb\t%s\ndisk_avail_kb\t%s\ndisk_percent\t%s\ndisk_mount\t%s\n", (+$2 ? $2 : 0), (+$3 ? $3 : 0), (+$4 ? $4 : 0), int($5), substr($6, 1, 32)
+    }
+  '
 }
 
 collect_metrics | head -n 128 | head -c 8192
+
 

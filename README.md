@@ -6,10 +6,11 @@ A native top bar widget and popup overview panel for Omarchy Linux displaying li
 
 ## Features
 
-- **Top Bar Pill**: Live CPU %, RAM %, Download bandwidth, and Upload bandwidth (`15%    42% 󰍛   1.2 MB/s 󰇚   340 KB/s 󰕒`) with load-based alert colors.
+- **Top Bar Pill**: Live CPU %, RAM %, Storage (Disk) %, Download bandwidth, and Upload bandwidth (`15%    42% 󰍛   44% (68G) 󰋊   1.2 MB/s 󰇚   340 KB/s 󰕒`) with load-based alert colors.
 - **Popup Overview Panel (Left-click)**:
   - **CPU**: Total load bar, load averages (1m, 5m, 15m), CPU model, core count, per-core mini meters, and temperature.
   - **Memory & Swap**: RAM used / total, available RAM, and swap breakdown with progress bar.
+  - **Storage**: Home partition used / total, free space, and mount path with progress bar.
   - **Network Activity**: Active interface name, live download/upload rates, and total cumulative bytes.
   - **Quick Action**: "btop" button to launch or focus btop in a floating terminal.
 - **Mouse Shortcuts**:
@@ -49,22 +50,34 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
   "refreshIntervalSec": 2,
   "showCpu": true,
   "showMemory": true,
+  "showDisk": false,
   "showNetwork": true,
   "showTemp": false,
+  "panelShowCpu": true,
+  "panelShowMemory": true,
+  "panelShowDisk": true,
+  "panelShowNetwork": true,
   "cpuAlertPercent": 85,
-  "memAlertPercent": 85
+  "memAlertPercent": 85,
+  "diskAlertPercent": 90
 }
 ```
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
 | `refreshIntervalSec` | integer | `2` | Update interval in seconds (1 to 10). |
-| `showCpu` | boolean | `true` | Show or hide the CPU load percentage in the top bar pill. |
-| `showMemory` | boolean | `true` | Show or hide the RAM percentage in the top bar pill. |
-| `showNetwork` | boolean | `true` | Show or hide the download/upload bandwidth in the top bar pill. |
-| `showTemp` | boolean | `false` | Show or hide the CPU temperature in the top bar pill alongside CPU %. |
+| `showCpu` | boolean | `true` | Show or hide CPU load percentage in the top bar pill. |
+| `showMemory` | boolean | `true` | Show or hide RAM percentage in the top bar pill. |
+| `showDisk` | boolean | `false` | Show or hide Storage (Disk) % & free space in the top bar pill. |
+| `showNetwork` | boolean | `true` | Show or hide download/upload bandwidth in the top bar pill. |
+| `showTemp` | boolean | `false` | Show or hide CPU temperature in the top bar pill alongside CPU %. |
+| `panelShowCpu` | boolean | `true` | Show or hide the CPU section in the overview popup panel. |
+| `panelShowMemory` | boolean | `true` | Show or hide the Memory section in the overview popup panel. |
+| `panelShowDisk` | boolean | `true` | Show or hide the Storage section in the overview popup panel. |
+| `panelShowNetwork` | boolean | `true` | Show or hide the Network section in the overview popup panel. |
 | `cpuAlertPercent` | integer | `85` | CPU % threshold to trigger urgent alert color (50 to 99). |
 | `memAlertPercent` | integer | `85` | Memory % threshold to trigger urgent alert color (50 to 99). |
+| `diskAlertPercent` | integer | `90` | Disk % threshold to trigger urgent alert color (50 to 99). |
 
 ## Remove
 

@@ -505,3 +505,29 @@ test("Model.parseStats ignores corrupted core lines without injecting bogus entr
   assert.strictEqual(s2.cores[0].id, "3");
 });
 
+test("Model.parseStats parses disk metrics and calculates percent", () => {
+  const raw = [
+    "disk_total_kb\t100000000",
+    "disk_used_kb\t40000000",
+    "disk_avail_kb\t60000000",
+    "disk_percent\t40",
+    "disk_mount\t/home"
+  ].join("\n");
+
+  const s = Model.parseStats(raw, null, 1000);
+  assert.strictEqual(s.diskTotalKb, 100000000);
+  assert.strictEqual(s.diskUsedKb, 40000000);
+  assert.strictEqual(s.diskAvailKb, 60000000);
+  assert.strictEqual(s.diskPercent, 40);
+  assert.strictEqual(s.diskMount, "/home");
+});
+
+test("Model.formatKbCompact formats compact values cleanly", () => {
+  assert.strictEqual(Model.formatKbCompact(0), "0M");
+  assert.strictEqual(Model.formatKbCompact(-10), "0M");
+  assert.strictEqual(Model.formatKbCompact(500 * 1024), "500M");
+  assert.strictEqual(Model.formatKbCompact(68 * 1024 * 1024), "68G");
+  assert.strictEqual(Model.formatKbCompact(120 * 1024 * 1024), "120G");
+});
+
+

@@ -41,6 +41,11 @@ function createInitialState() {
     rxSpeed: 0,
     txSpeed: 0,
     netIface: "eth0",
+    diskTotalKb: 0,
+    diskUsedKb: 0,
+    diskAvailKb: 0,
+    diskPercent: 0,
+    diskMount: "",
     load1: "0.00",
     load5: "0.00",
     load15: "0.00",
@@ -198,6 +203,19 @@ function parseStats(raw, prevState, nowMs) {
   next.cpuModel = sanitizeString(kv["cpu_model"] !== undefined ? kv["cpu_model"] : state.cpuModel, 64, (state && state.cpuModel) || "CPU");
   next.cpuTemp = sanitizeString(kv["cpu_temp"] !== undefined ? kv["cpu_temp"] : state.cpuTemp, 16, (state && state.cpuTemp) || "");
 
+  // 6. Disk (Home partition)
+  var diskTotal = safeNumber(kv["disk_total_kb"], state.diskTotalKb || 0);
+  var diskUsed = safeNumber(kv["disk_used_kb"], state.diskUsedKb || 0);
+  var diskAvail = safeNumber(kv["disk_avail_kb"], state.diskAvailKb || 0);
+  var diskPct = (kv["disk_percent"] !== undefined && String(kv["disk_percent"]).trim() !== "")
+    ? safeNumber(kv["disk_percent"], state.diskPercent || 0)
+    : (diskTotal > 0 ? (diskUsed / diskTotal) * 100 : (state.diskPercent || 0));
+  next.diskTotalKb = Math.max(0, diskTotal);
+  next.diskUsedKb = Math.max(0, diskUsed);
+  next.diskAvailKb = Math.max(0, diskAvail);
+  next.diskPercent = Math.max(0, Math.min(100, Math.round(diskPct)));
+  next.diskMount = sanitizeString(kv["disk_mount"] !== undefined ? kv["disk_mount"] : state.diskMount, 32, (state && state.diskMount) || "");
+
   next.initialized = true;
   return next;
 }
@@ -236,6 +254,13 @@ function formatKb(kb) {
   return (k / (1024 * 1024)).toFixed(1) + " GB";
 }
 
+function formatKbCompact(kb) {
+  var k = safeNumber(kb, 0);
+  if (k <= 0) return "0M";
+  if (k < 1024 * 1024) return (k / 1024).toFixed(0) + "M";
+  return (k / (1024 * 1024)).toFixed(0) + "G";
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     createInitialState: createInitialState,
@@ -244,6 +269,7 @@ if (typeof module !== "undefined") {
     formatSpeedCompact: formatSpeedCompact,
     formatBytes: formatBytes,
     formatKb: formatKb,
+    formatKbCompact: formatKbCompact,
     sanitizeString: sanitizeString,
     safeNumber: safeNumber
   };

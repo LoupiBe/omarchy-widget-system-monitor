@@ -22,10 +22,16 @@
       "refreshIntervalSec": 2,
       "showCpu": true,
       "showMemory": true,
+      "showDisk": false,
       "showNetwork": true,
       "showTemp": false,
+      "panelShowCpu": true,
+      "panelShowMemory": true,
+      "panelShowDisk": true,
+      "panelShowNetwork": true,
       "cpuAlertPercent": 85,
-      "memAlertPercent": 85
+      "memAlertPercent": 85,
+      "diskAlertPercent": 90
     },
     "schema": [
       {
@@ -50,6 +56,12 @@
         "defaultValue": true
       },
       {
+        "key": "showDisk",
+        "type": "boolean",
+        "label": "Show Storage (Disk) in bar",
+        "defaultValue": false
+      },
+      {
         "key": "showNetwork",
         "type": "boolean",
         "label": "Show Network in bar",
@@ -60,6 +72,30 @@
         "type": "boolean",
         "label": "Show CPU temperature in bar",
         "defaultValue": false
+      },
+      {
+        "key": "panelShowCpu",
+        "type": "boolean",
+        "label": "Show CPU in overview panel",
+        "defaultValue": true
+      },
+      {
+        "key": "panelShowMemory",
+        "type": "boolean",
+        "label": "Show Memory in overview panel",
+        "defaultValue": true
+      },
+      {
+        "key": "panelShowDisk",
+        "type": "boolean",
+        "label": "Show Storage (Disk) in overview panel",
+        "defaultValue": true
+      },
+      {
+        "key": "panelShowNetwork",
+        "type": "boolean",
+        "label": "Show Network in overview panel",
+        "defaultValue": true
       },
       {
         "key": "cpuAlertPercent",
@@ -78,6 +114,15 @@
         "max": 99,
         "step": 5,
         "defaultValue": 85
+      },
+      {
+        "key": "diskAlertPercent",
+        "type": "integer",
+        "label": "Disk alert threshold (%)",
+        "min": 50,
+        "max": 99,
+        "step": 5,
+        "defaultValue": 90
       }
     ]
   }

@@ -16,10 +16,16 @@ Panel {
   property int refreshIntervalSec: setting("refreshIntervalSec", 2)
   property bool showCpu: setting("showCpu", true)
   property bool showMemory: setting("showMemory", true)
+  property bool showDisk: setting("showDisk", false)
   property bool showNetwork: setting("showNetwork", true)
   property bool showTemp: setting("showTemp", false)
+  property bool panelShowCpu: setting("panelShowCpu", true)
+  property bool panelShowMemory: setting("panelShowMemory", true)
+  property bool panelShowDisk: setting("panelShowDisk", true)
+  property bool panelShowNetwork: setting("panelShowNetwork", true)
   property int cpuAlertPercent: setting("cpuAlertPercent", 85)
   property int memAlertPercent: setting("memAlertPercent", 85)
+  property int diskAlertPercent: setting("diskAlertPercent", 90)
   readonly property bool vertical: bar ? bar.vertical : false
   readonly property int barSize: bar ? bar.barSize : Style.bar.sizeHorizontal
   readonly property string statsScriptPath: localPath(Qt.resolvedUrl("stats.sh"))
@@ -89,6 +95,7 @@ Panel {
     tooltipText: "CPU: " + root.stats.cpuPercent + "%"
       + (root.stats.cpuTemp ? " (" + root.stats.cpuTemp + ")" : "")
       + "\nRAM: " + Math.round(root.stats.memPercent) + "% (" + Model.formatKb(root.stats.memUsedKb) + " / " + Model.formatKb(root.stats.memTotalKb) + ")"
+      + "\nDisk (" + (root.stats.diskMount || "$HOME") + "): " + root.stats.diskPercent + "% (" + Model.formatKb(root.stats.diskUsedKb) + " / " + Model.formatKb(root.stats.diskTotalKb) + ")"
       + "\nNetwork: 󰇚 " + Model.formatSpeed(root.stats.rxSpeed) + "  󰕒 " + Model.formatSpeed(root.stats.txSpeed)
       + "\n\nLeft-click: Open Overview Panel\nRight-click: Launch btop\nMiddle-click: Refresh"
 
@@ -151,6 +158,33 @@ Panel {
           text: "󰍛"
           textFormat: Text.PlainText
           color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+          renderType: Text.NativeRendering
+          anchors.verticalCenter: parent.verticalCenter
+        }
+      }
+
+      // Disk slot
+      Row {
+        spacing: Style.space(3)
+        anchors.verticalCenter: parent.verticalCenter
+        visible: root.showDisk
+        Text {
+          width: Style.space(76)
+          horizontalAlignment: Text.AlignRight
+          text: root.stats.diskPercent + "% (" + Model.formatKbCompact(root.stats.diskAvailKb) + ")"
+          textFormat: Text.PlainText
+          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+          renderType: Text.NativeRendering
+          anchors.verticalCenter: parent.verticalCenter
+        }
+        Text {
+          text: "󰋊"
+          textFormat: Text.PlainText
+          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
           renderType: Text.NativeRendering
@@ -239,6 +273,15 @@ Panel {
         font.pixelSize: Style.font.caption
         renderType: Text.NativeRendering
       }
+      Text {
+        visible: root.showDisk
+        text: "󰋊 " + root.stats.diskPercent + "%"
+        textFormat: Text.PlainText
+        color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.caption
+        renderType: Text.NativeRendering
+      }
     }
   }
 
@@ -311,6 +354,7 @@ Panel {
         Column {
           width: parent.width
           spacing: Style.space(6)
+          visible: root.panelShowCpu
 
           Row {
             width: parent.width
@@ -415,12 +459,16 @@ Panel {
           }
         }
 
-        PanelSeparator { foreground: root.barForeground }
+        PanelSeparator {
+          foreground: root.barForeground
+          visible: root.panelShowCpu && (root.panelShowMemory || root.panelShowDisk || root.panelShowNetwork)
+        }
 
         // --- Memory Section ---
         Column {
           width: parent.width
           spacing: Style.space(6)
+          visible: root.panelShowMemory
 
           Row {
             width: parent.width
@@ -483,12 +531,88 @@ Panel {
           }
         }
 
-        PanelSeparator { foreground: root.barForeground }
+        PanelSeparator {
+          foreground: root.barForeground
+          visible: root.panelShowMemory && (root.panelShowDisk || root.panelShowNetwork)
+        }
+
+        // --- Storage (Disk) Section ---
+        Column {
+          width: parent.width
+          spacing: Style.space(6)
+          visible: root.panelShowDisk
+
+          Row {
+            width: parent.width
+            Text {
+              text: "STORAGE (" + (root.stats.diskMount || "$HOME") + ")"
+              textFormat: Text.PlainText
+              color: Qt.darker(root.barForeground, 1.4)
+              font.family: root.barFontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+            Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
+            Text {
+              text: root.stats.diskPercent + "% (" + Model.formatKb(root.stats.diskUsedKb) + " / " + Model.formatKb(root.stats.diskTotalKb) + ")"
+              textFormat: Text.PlainText
+              color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+              font.family: root.barFontFamily
+              font.pixelSize: Style.font.bodySmall
+              font.bold: true
+            }
+          }
+
+          // Disk Progress Bar
+          Item {
+            width: parent.width
+            height: Style.space(6)
+            Rectangle {
+              anchors.fill: parent
+              radius: height / 2
+              color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+            }
+            Rectangle {
+              height: parent.height
+              radius: height / 2
+              width: Math.max(height, parent.width * (root.stats.diskPercent / 100))
+              color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+              Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+              Behavior on color { ColorAnimation { duration: 200 } }
+            }
+          }
+
+          Row {
+            width: parent.width
+            spacing: Style.space(8)
+            Text {
+              text: "Free: " + Model.formatKb(root.stats.diskAvailKb)
+              textFormat: Text.PlainText
+              color: Qt.darker(root.barForeground, 1.4)
+              font.family: root.barFontFamily
+              font.pixelSize: Style.font.bodySmall
+            }
+            Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2); height: 1 }
+            Text {
+              text: "Used: " + Model.formatKb(root.stats.diskUsedKb)
+              textFormat: Text.PlainText
+              color: Qt.darker(root.barForeground, 1.4)
+              font.family: root.barFontFamily
+              font.pixelSize: Style.font.bodySmall
+            }
+          }
+        }
+
+        PanelSeparator {
+          foreground: root.barForeground
+          visible: root.panelShowDisk && root.panelShowNetwork
+        }
 
         // --- Network Section ---
         Column {
           width: parent.width
           spacing: Style.space(6)
+          visible: root.panelShowNetwork
 
           Row {
             width: parent.width
