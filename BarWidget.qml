@@ -89,6 +89,11 @@ Panel {
   visible: true
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
+  onOpenedChanged: {
+    if (root.opened) {
+      root.refresh()
+    }
+  }
 
   Process {
     id: statsProc
@@ -112,7 +117,7 @@ Panel {
   }
 
   Timer {
-    interval: Math.max(1000, root.refreshIntervalSec * 1000)
+    interval: (root.bar && root.bar.screenLocked) ? 10000 : Math.max(1000, root.refreshIntervalSec * 1000)
     running: true
     repeat: true
     triggeredOnStart: true

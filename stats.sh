@@ -45,7 +45,11 @@ collect_metrics() {
       if (iface != "lo" && index(iface, "docker") != 1 && index(iface, "veth") != 1 && index(iface, "br-") != 1 && index(iface, "virbr") != 1) {
         rx += $2
         tx += $10
-        if (active == "" && ($2 > 0 || $10 > 0)) active = substr(iface, 1, 32)
+        total_if = $2 + $10
+        if (total_if > max_traffic) {
+          max_traffic = total_if
+          active = substr(iface, 1, 32)
+        }
       }
     }
     END {
@@ -163,7 +167,12 @@ collect_metrics() {
 
   # 8a. NVIDIA via nvidia-smi if installed
   if command -v nvidia-smi >/dev/null 2>&1; then
-    nv_out=$(nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total,name --format=csv,noheader,nounits 2>/dev/null | head -n 1)
+    nv_cmd="nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total,name --format=csv,noheader,nounits"
+    if command -v timeout >/dev/null 2>&1; then
+      nv_out=$(timeout 0.3 $nv_cmd 2>/dev/null | head -n 1)
+    else
+      nv_out=$($nv_cmd 2>/dev/null | head -n 1)
+    fi
     if [ -n "$nv_out" ]; then
       IFS="," read -r nv_util nv_temp nv_mem_used nv_mem_total nv_name <<< "$nv_out"
       gpu_percent=$(echo "$nv_util" | tr -d "[:space:]")
