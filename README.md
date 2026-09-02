@@ -80,6 +80,7 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
   "panelShowDisk": true,
   "panelShowNetwork": true,
   "historyStyle": "sparkline",
+  "historySize": "normal",
   "historyPoints": 20,
   "showCpuHistory": true,
   "showNetworkHistory": true,
@@ -110,6 +111,7 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
 | `panelShowDisk` | boolean | `true` | Show or hide the Storage section in the overview popup panel. |
 | `panelShowNetwork` | boolean | `true` | Show or hide the Network section in the overview popup panel. |
 | `historyStyle` | string | `"sparkline"` | Style for timeline history graphs (`"sparkline"`, `"bars"`, `"area"`). |
+| `historySize` | string | `"normal"` | Height of history graphs (`"micro"` [8px], `"small"` [14px], `"normal"` [20px], `"big"` [30px], `"huge"` [40px]). |
 | `historyPoints` | integer | `20` | Number of history sample points to keep in timeline (5 to 60). |
 | `showCpuHistory` | boolean | `true` | Show timeline sparkline/graph in the CPU overview section. |
 | `showNetworkHistory` | boolean | `true` | Show timeline sparkline/graph for download/upload in Network section. |

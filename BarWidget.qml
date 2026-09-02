@@ -30,6 +30,7 @@ Panel {
   property int memAlertPercent: setting("memAlertPercent", 85)
   property int diskAlertPercent: setting("diskAlertPercent", 90)
   property string historyStyle: setting("historyStyle", "sparkline")
+  property string historySize: setting("historySize", "normal")
   property int historyPoints: setting("historyPoints", 20)
   property bool showCpuHistory: setting("showCpuHistory", true)
   property bool showNetworkHistory: setting("showNetworkHistory", true)
@@ -367,9 +368,12 @@ Panel {
     property real maxVal: 100
     property color graphColor: Color.accent
     property string styleMode: root.historyStyle
+    property string sizeMode: root.historySize
+
+    readonly property int graphHeight: Model.getHistoryHeight(sizeMode)
 
     width: parent ? parent.width : Style.space(200)
-    height: styleMode === "sparkline" ? sparkText.implicitHeight : (styleMode === "bars" ? Style.space(12) : Style.space(16))
+    height: styleMode === "sparkline" ? Math.max(sparkText.implicitHeight, Style.space(graphHeight)) : Style.space(graphHeight)
     visible: values && values.length > 1
 
     // 1. Sparkline Style

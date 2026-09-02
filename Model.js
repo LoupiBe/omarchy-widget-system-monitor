@@ -330,12 +330,26 @@ function parseOrder(val, defaultOrder) {
   return d;
 }
 
+function getHistoryHeight(sizeName) {
+  var s = String(sizeName || "").toLowerCase().trim();
+  switch (s) {
+    case "micro": return 8;
+    case "small": return 14;
+    case "big": return 30;
+    case "huge": return 40;
+    case "normal":
+    default:
+      return 20;
+  }
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     createInitialState: createInitialState,
     parseStats: parseStats,
     generateSparkline: generateSparkline,
     updateHistory: updateHistory,
+    getHistoryHeight: getHistoryHeight,
     formatSpeed: formatSpeed,
     formatSpeedCompact: formatSpeedCompact,
     formatBytes: formatBytes,

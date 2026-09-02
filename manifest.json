@@ -36,6 +36,7 @@
       "panelShowGpu": false,
       "gpuAlertPercent": 85,
       "historyStyle": "sparkline",
+      "historySize": "normal",
       "historyPoints": 20,
       "showCpuHistory": true,
       "showNetworkHistory": true,
@@ -133,6 +134,12 @@
         "type": "string",
         "label": "History timeline style ('sparkline', 'bars', 'area')",
         "defaultValue": "sparkline"
+      },
+      {
+        "key": "historySize",
+        "type": "string",
+        "label": "History graph height ('micro', 'small', 'normal', 'big', 'huge')",
+        "defaultValue": "normal"
       },
       {
         "key": "historyPoints",

@@ -593,6 +593,21 @@ test("Model.updateHistory correctly caps array to max points", () => {
   assert.strictEqual(hist[9], 25);
 });
 
+test("Model.getHistoryHeight returns proportional heights for 5 size tiers", () => {
+  assert.strictEqual(Model.getHistoryHeight("micro"), 8);
+  assert.strictEqual(Model.getHistoryHeight("small"), 14);
+  assert.strictEqual(Model.getHistoryHeight("normal"), 20);
+  assert.strictEqual(Model.getHistoryHeight("big"), 30);
+  assert.strictEqual(Model.getHistoryHeight("huge"), 40);
+  
+  // Verify 5x scale relation between huge (40) and micro (8)
+  assert.strictEqual(Model.getHistoryHeight("huge"), Model.getHistoryHeight("micro") * 5);
+  
+  // Fallbacks
+  assert.strictEqual(Model.getHistoryHeight(null), 20);
+  assert.strictEqual(Model.getHistoryHeight("unknown"), 20);
+});
+
 
 
 
