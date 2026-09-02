@@ -4,21 +4,36 @@ A native top bar widget and popup overview panel for Omarchy Linux displaying li
 
 ![System Monitor preview](preview.png)
 
-## Features
+## ✨ Unique Features & Highlights
 
-- **Top Bar Pill**: Live CPU %, RAM %, Storage (Disk) %, Download bandwidth, and Upload bandwidth (`15%    42% 󰍛   44% (68G) 󰋊   1.2 MB/s 󰇚   340 KB/s 󰕒`) with load-based alert colors.
-- **Popup Overview Panel (Left-click)**:
-  - **CPU**: Total load bar, load averages (1m, 5m, 15m), CPU model, core count, per-core mini meters, and temperature.
-  - **Memory & Swap**: RAM used / total, available RAM, and swap breakdown with progress bar.
-  - **Storage**: Home partition used / total, free space, and mount path with progress bar.
-  - **Network Activity**: Active interface name, live download/upload rates, and total cumulative bytes.
-  - **Quick Action**: "btop" button to launch or focus btop in a floating terminal.
-- **Mouse Shortcuts**:
-  - **Left-click**: Toggle overview popup panel.
-  - **Right-click**: Instantly open or focus `btop` in a floating terminal.
-  - **Middle-click**: Force immediate metrics refresh.
+- ⚡ **Zero-Dependency Native Collector**: Directly queries Linux `/proc` and `/sys` interfaces with pure POSIX shell and AWK. No Python daemon, Node.js runtime, or background services required (~15–20ms execution per tick).
+- 🌡️ **Accurate CPU Package Temperature**: Automatically prioritizes dedicated CPU hardware sensors (Intel `coretemp`, AMD `k10temp`/`zenpower`, ARM SoC) over generic motherboard/ACPI ambient zones to report exact die temperatures matching `btop`.
+- 🔀 **Independent Bar vs. Popup Configuration**: Customize what appears in your top bar pill separately from what is displayed in the popup overview panel (e.g. keep the bar minimal while showing all details in the popup).
+- 📐 **Full Metric & Section Reordering**: Freely customize the ordering of metric slots in the top bar pill (`barOrder`) and overview panel sections (`panelOrder`) via simple lists or comma-separated strings.
+- 🛡️ **Hardened Architecture & Security**: Producer-side bounding (<= 8KB / 128 lines max), consumer-side core caps (<= 64 cores), control-character sanitization, explicit `Text.PlainText` rendering across all sinks, and a 2.0s process watchdog timer to prevent hung subprocesses.
+- ⚡ **Interactive Productivity Shortcuts**: Left-click to inspect full metrics, right-click to instantly launch or focus `btop` in a floating terminal, and middle-click to trigger an immediate metrics refresh.
 
-## Install
+## 📊 Feature Breakdown
+
+### 1. Top Bar Pill
+- **Live Metrics**: CPU usage (%), RAM usage (%), Storage/Home partition (%), Download bandwidth, and Upload bandwidth (`15%    42% 󰍛   44% (68G) 󰋊   1.2 MB/s 󰇚   340 KB/s 󰕒`).
+- **Dynamic Orientation**: Seamlessly adapts between horizontal and vertical bar layouts.
+- **Threshold Alert Colors**: Color transitions to warning and urgent accent colors when CPU, Memory, or Disk cross configured alert thresholds.
+- **Customizable Order**: Rearrange pill slots (e.g. `["disk", "cpu", "memory", "network"]` or `"cpu, memory, network"`).
+
+### 2. Overview Popup Panel (Left-Click)
+- **Header Summary**: Real-time CPU die temperature, system uptime, and a quick-launch **`btop`** task manager button.
+- **CPU Load Section**: Overall utilization percentage, dynamic progress bar, 1m/5m/15m load averages, core count, and per-core mini load bars (supporting up to 64 cores).
+- **Network Section**: Active network interface name, real-time download and upload transfer rates, and cumulative session data transfer totals.
+- **Memory & Swap Section**: Used / total RAM, available RAM, and swap space breakdown with visual progress bar.
+- **Storage Section**: Primary `$HOME` partition mount path, used / total disk capacity, free space remaining, and utilization progress bar.
+- **Section Reordering**: Set any section order you prefer (e.g. `["cpu", "network", "memory", "storage"]`).
+
+### 3. Mouse & Keyboard Shortcuts
+- **Left-Click**: Toggle overview popup panel.
+- **Right-Click**: Instantly open or focus `btop` in a floating terminal.
+- **Middle-Click**: Force immediate metrics refresh.
+- **Escape / Tab**: Close popup or cycle between adjacent panels.
 
 ```sh
 omarchy plugin add https://github.com/LoupiBe/omarchy-widget-system-monitor.git --enable
