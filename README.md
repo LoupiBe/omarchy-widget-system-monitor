@@ -7,6 +7,7 @@ A native top bar widget and popup overview panel for Omarchy Linux displaying li
 ## ✨ Unique Features & Highlights
 
 - ⚡ **Zero-Dependency Native Collector**: Directly queries Linux `/proc` and `/sys` interfaces with pure POSIX shell and AWK. No Python daemon, Node.js runtime, or background services required (~15–20ms execution per tick).
+- 📏 **Jitter-Free Fixed Layout (Zero Horizontal Shift)**: Each top bar metric slot uses calibrated fixed-width containers with right-aligned typography. The bar never shifts, bounces, or resizes when metric digits change length (e.g. going from `9%` to `10%` to `100%` or `<1 KB/s` to `12.5 MB/s`).
 - 🌡️ **Accurate CPU Package Temperature**: Automatically prioritizes dedicated CPU hardware sensors (Intel `coretemp`, AMD `k10temp`/`zenpower`, ARM SoC) over generic motherboard/ACPI ambient zones to report exact die temperatures matching `btop`.
 - 🔀 **Independent Bar vs. Popup Configuration**: Customize what appears in your top bar pill separately from what is displayed in the popup overview panel (e.g. keep the bar minimal while showing all details in the popup).
 - 📐 **Full Metric & Section Reordering**: Freely customize the ordering of metric slots in the top bar pill (`barOrder`) and overview panel sections (`panelOrder`) via simple lists or comma-separated strings.
@@ -17,6 +18,7 @@ A native top bar widget and popup overview panel for Omarchy Linux displaying li
 
 ### 1. Top Bar Pill
 - **Live Metrics**: CPU usage (%), RAM usage (%), Storage/Home partition (%), Download bandwidth, and Upload bandwidth (`15%    42% 󰍛   44% (68G) 󰋊   1.2 MB/s 󰇚   340 KB/s 󰕒`).
+- **Zero Layout Jitter**: Fixed slot widths guarantee neighboring top bar widgets remain perfectly stationary on every refresh tick.
 - **Dynamic Orientation**: Seamlessly adapts between horizontal and vertical bar layouts.
 - **Threshold Alert Colors**: Color transitions to warning and urgent accent colors when CPU, Memory, or Disk cross configured alert thresholds.
 - **Customizable Order**: Rearrange pill slots (e.g. `["disk", "cpu", "memory", "network"]` or `"cpu, memory, network"`).
@@ -34,6 +36,8 @@ A native top bar widget and popup overview panel for Omarchy Linux displaying li
 - **Right-Click**: Instantly open or focus `btop` in a floating terminal.
 - **Middle-Click**: Force immediate metrics refresh.
 - **Escape / Tab**: Close popup or cycle between adjacent panels.
+
+## Install
 
 ```sh
 omarchy plugin add https://github.com/LoupiBe/omarchy-widget-system-monitor.git --enable
