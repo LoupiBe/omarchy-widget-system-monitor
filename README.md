@@ -39,16 +39,32 @@ Place the widget in your preferred bar section (e.g. `left`, `center`, `right`):
 omarchy bar move io.github.loupibe.system-monitor --section left
 ```
 
-### Refresh Interval
+### Options & Customization
 
-The refresh interval can be customized in `~/.config/omarchy/shell.json`:
+The widget can be fully customized in `~/.config/omarchy/shell.json`:
 
 ```json
 {
   "id": "io.github.loupibe.system-monitor",
-  "refreshIntervalSec": 2
+  "refreshIntervalSec": 2,
+  "showCpu": true,
+  "showMemory": true,
+  "showNetwork": true,
+  "showTemp": false,
+  "cpuAlertPercent": 85,
+  "memAlertPercent": 85
 }
 ```
+
+| Setting | Type | Default | Description |
+|---|---|---|---|
+| `refreshIntervalSec` | integer | `2` | Update interval in seconds (1 to 10). |
+| `showCpu` | boolean | `true` | Show or hide the CPU load percentage in the top bar pill. |
+| `showMemory` | boolean | `true` | Show or hide the RAM percentage in the top bar pill. |
+| `showNetwork` | boolean | `true` | Show or hide the download/upload bandwidth in the top bar pill. |
+| `showTemp` | boolean | `false` | Show or hide the CPU temperature in the top bar pill alongside CPU %. |
+| `cpuAlertPercent` | integer | `85` | CPU % threshold to trigger urgent alert color (50 to 99). |
+| `memAlertPercent` | integer | `85` | Memory % threshold to trigger urgent alert color (50 to 99). |
 
 ## Remove
 

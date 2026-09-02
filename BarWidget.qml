@@ -14,6 +14,12 @@ Panel {
 
   property var stats: Model.createInitialState()
   property int refreshIntervalSec: setting("refreshIntervalSec", 2)
+  property bool showCpu: setting("showCpu", true)
+  property bool showMemory: setting("showMemory", true)
+  property bool showNetwork: setting("showNetwork", true)
+  property bool showTemp: setting("showTemp", false)
+  property int cpuAlertPercent: setting("cpuAlertPercent", 85)
+  property int memAlertPercent: setting("memAlertPercent", 85)
   readonly property bool vertical: bar ? bar.vertical : false
   readonly property int barSize: bar ? bar.barSize : Style.bar.sizeHorizontal
   readonly property string statsScriptPath: localPath(Qt.resolvedUrl("stats.sh"))
@@ -102,12 +108,13 @@ Panel {
       Row {
         spacing: Style.space(3)
         anchors.verticalCenter: parent.verticalCenter
+        visible: root.showCpu
         Text {
-          width: Style.space(34)
+          width: root.showTemp && root.stats.cpuTemp ? Style.space(68) : Style.space(34)
           horizontalAlignment: Text.AlignRight
-          text: root.stats.cpuPercent + "%"
+          text: root.stats.cpuPercent + "%" + (root.showTemp && root.stats.cpuTemp ? " " + root.stats.cpuTemp : "")
           textFormat: Text.PlainText
-          color: root.barForeground
+          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
           renderType: Text.NativeRendering
@@ -116,7 +123,7 @@ Panel {
         Text {
           text: ""
           textFormat: Text.PlainText
-          color: root.barForeground
+          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
           renderType: Text.NativeRendering
@@ -128,12 +135,13 @@ Panel {
       Row {
         spacing: Style.space(3)
         anchors.verticalCenter: parent.verticalCenter
+        visible: root.showMemory
         Text {
           width: Style.space(34)
           horizontalAlignment: Text.AlignRight
           text: Math.round(root.stats.memPercent) + "%"
           textFormat: Text.PlainText
-          color: root.barForeground
+          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
           renderType: Text.NativeRendering
@@ -142,7 +150,7 @@ Panel {
         Text {
           text: "󰍛"
           textFormat: Text.PlainText
-          color: root.barForeground
+          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
           renderType: Text.NativeRendering
@@ -154,6 +162,7 @@ Panel {
       Row {
         spacing: Style.space(3)
         anchors.verticalCenter: parent.verticalCenter
+        visible: root.showNetwork
         Text {
           width: Style.space(76)
           horizontalAlignment: Text.AlignRight
@@ -180,6 +189,7 @@ Panel {
       Row {
         spacing: Style.space(3)
         anchors.verticalCenter: parent.verticalCenter
+        visible: root.showNetwork
         Text {
           width: Style.space(76)
           horizontalAlignment: Text.AlignRight
@@ -212,17 +222,19 @@ Panel {
       opacity: root.vertical === true ? 1.0 : 0.0
 
       Text {
-        text: " " + root.stats.cpuPercent + "%"
+        visible: root.showCpu
+        text: " " + root.stats.cpuPercent + "%" + (root.showTemp && root.stats.cpuTemp ? " " + root.stats.cpuTemp : "")
         textFormat: Text.PlainText
-        color: root.barForeground
+        color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : root.barForeground
         font.family: root.barFontFamily
         font.pixelSize: Style.font.caption
         renderType: Text.NativeRendering
       }
       Text {
+        visible: root.showMemory
         text: "󰍛 " + Math.round(root.stats.memPercent) + "%"
         textFormat: Text.PlainText
-        color: root.barForeground
+        color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : root.barForeground
         font.family: root.barFontFamily
         font.pixelSize: Style.font.caption
         renderType: Text.NativeRendering
@@ -314,7 +326,7 @@ Panel {
             Text {
               text: root.stats.cpuPercent + "%"
               textFormat: Text.PlainText
-              color: root.stats.cpuPercent > 85 ? Color.urgent : (root.stats.cpuPercent > 65 ? Color.accent : root.barForeground)
+              color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
               font.bold: true
@@ -334,7 +346,7 @@ Panel {
               height: parent.height
               radius: height / 2
               width: Math.max(height, parent.width * (root.stats.cpuPercent / 100))
-              color: root.stats.cpuPercent > 85 ? Color.urgent : (root.stats.cpuPercent > 65 ? Color.accent : root.barForeground)
+              color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
               Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
               Behavior on color { ColorAnimation { duration: 200 } }
             }
@@ -374,7 +386,7 @@ Panel {
                       height: parent.height
                       radius: height / 2
                       width: Math.max(height, parent.width * (modelData.percent / 100))
-                      color: modelData.percent > 85 ? Color.urgent : (modelData.percent > 65 ? Color.accent : root.barForeground)
+                      color: modelData.percent >= root.cpuAlertPercent ? Color.urgent : (modelData.percent >= 65 ? Color.accent : root.barForeground)
                     }
                   }
                 }
@@ -424,7 +436,7 @@ Panel {
             Text {
               text: Math.round(root.stats.memPercent) + "% (" + Model.formatKb(root.stats.memUsedKb) + " / " + Model.formatKb(root.stats.memTotalKb) + ")"
               textFormat: Text.PlainText
-              color: root.stats.memPercent > 85 ? Color.urgent : (root.stats.memPercent > 70 ? Color.accent : root.barForeground)
+              color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
               font.bold: true
@@ -444,7 +456,7 @@ Panel {
               height: parent.height
               radius: height / 2
               width: Math.max(height, parent.width * (root.stats.memPercent / 100))
-              color: root.stats.memPercent > 85 ? Color.urgent : (root.stats.memPercent > 70 ? Color.accent : root.barForeground)
+              color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
               Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
               Behavior on color { ColorAnimation { duration: 200 } }
             }

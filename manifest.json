@@ -19,7 +19,13 @@
     "allowMultiple": false,
     "defaultSection": "left",
     "defaults": {
-      "refreshIntervalSec": 2
+      "refreshIntervalSec": 2,
+      "showCpu": true,
+      "showMemory": true,
+      "showNetwork": true,
+      "showTemp": false,
+      "cpuAlertPercent": 85,
+      "memAlertPercent": 85
     },
     "schema": [
       {
@@ -30,6 +36,48 @@
         "max": 10,
         "step": 1,
         "defaultValue": 2
+      },
+      {
+        "key": "showCpu",
+        "type": "boolean",
+        "label": "Show CPU in bar",
+        "defaultValue": true
+      },
+      {
+        "key": "showMemory",
+        "type": "boolean",
+        "label": "Show Memory in bar",
+        "defaultValue": true
+      },
+      {
+        "key": "showNetwork",
+        "type": "boolean",
+        "label": "Show Network in bar",
+        "defaultValue": true
+      },
+      {
+        "key": "showTemp",
+        "type": "boolean",
+        "label": "Show CPU temperature in bar",
+        "defaultValue": false
+      },
+      {
+        "key": "cpuAlertPercent",
+        "type": "integer",
+        "label": "CPU alert threshold (%)",
+        "min": 50,
+        "max": 99,
+        "step": 5,
+        "defaultValue": 85
+      },
+      {
+        "key": "memAlertPercent",
+        "type": "integer",
+        "label": "Memory alert threshold (%)",
+        "min": 50,
+        "max": 99,
+        "step": 5,
+        "defaultValue": 85
       }
     ]
   }
