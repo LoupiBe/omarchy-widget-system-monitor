@@ -15,15 +15,18 @@ Panel {
   property var stats: Model.createInitialState()
   property int refreshIntervalSec: setting("refreshIntervalSec", 2)
   property bool showCpu: setting("showCpu", true)
+  property bool showGpu: setting("showGpu", false)
   property bool showMemory: setting("showMemory", true)
   property bool showDisk: setting("showDisk", false)
   property bool showNetwork: setting("showNetwork", true)
   property bool showTemp: setting("showTemp", false)
   property bool panelShowCpu: setting("panelShowCpu", true)
+  property bool panelShowGpu: setting("panelShowGpu", false)
   property bool panelShowMemory: setting("panelShowMemory", true)
   property bool panelShowDisk: setting("panelShowDisk", true)
   property bool panelShowNetwork: setting("panelShowNetwork", true)
   property int cpuAlertPercent: setting("cpuAlertPercent", 85)
+  property int gpuAlertPercent: setting("gpuAlertPercent", 85)
   property int memAlertPercent: setting("memAlertPercent", 85)
   property int diskAlertPercent: setting("diskAlertPercent", 90)
   property var barOrder: setting("barOrder", ["cpu", "memory", "disk", "network"])
@@ -35,6 +38,7 @@ Panel {
     for (var i = 0; i < order.length; i++) {
       var key = order[i];
       if (key === "cpu" && root.showCpu) list.push("cpu");
+      else if (key === "gpu" && root.showGpu) list.push("gpu");
       else if ((key === "memory" || key === "ram") && root.showMemory) list.push("memory");
       else if ((key === "disk" || key === "storage") && root.showDisk) list.push("disk");
       else if ((key === "network" || key === "net") && root.showNetwork) list.push("network");
@@ -136,6 +140,34 @@ Panel {
         text: ""
         textFormat: Text.PlainText
         color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+    }
+  }
+
+  Component {
+    id: gpuSlotComponent
+    Row {
+      spacing: Style.space(3)
+      anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+      Text {
+        width: Style.space(34)
+        horizontalAlignment: Text.AlignRight
+        text: root.stats.gpuPercent + "%"
+        textFormat: Text.PlainText
+        color: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.barForeground)
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+      Text {
+        text: "󰢮"
+        textFormat: Text.PlainText
+        color: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.barForeground)
         font.family: root.barFontFamily
         font.pixelSize: Style.font.bodySmall
         renderType: Text.NativeRendering
@@ -280,6 +312,18 @@ Panel {
   }
 
   Component {
+    id: verticalGpuComponent
+    Text {
+      text: "󰢮 " + root.stats.gpuPercent + "%"
+      textFormat: Text.PlainText
+      color: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : root.barForeground
+      font.family: root.barFontFamily
+      font.pixelSize: Style.font.caption
+      renderType: Text.NativeRendering
+    }
+  }
+
+  Component {
     id: verticalMemComponent
     Text {
       text: "󰍛 " + Math.round(root.stats.memPercent) + "%"
@@ -409,6 +453,72 @@ Panel {
           color: Qt.darker(root.barForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
+        }
+      }
+
+      // Optional GPU Section inside CPU Panel
+      Column {
+        width: parent.width
+        spacing: Style.space(6)
+        visible: root.panelShowGpu
+
+        Rectangle {
+          width: parent.width
+          height: 1
+          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+        }
+
+        Row {
+          width: parent.width
+          Text {
+            text: "GPU LOAD" + (root.stats.gpuName ? " (" + root.stats.gpuName + ")" : "")
+            textFormat: Text.PlainText
+            color: Qt.darker(root.barForeground, 1.4)
+            font.family: root.barFontFamily
+            font.pixelSize: Style.font.caption
+            font.bold: true
+          }
+          Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
+          Text {
+            text: root.stats.gpuPercent + "%" + (root.stats.gpuTemp ? " · " + root.stats.gpuTemp : "")
+            textFormat: Text.PlainText
+            color: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.barForeground)
+            font.family: root.barFontFamily
+            font.pixelSize: Style.font.bodySmall
+            font.bold: true
+          }
+        }
+
+        // GPU Progress Bar
+        Item {
+          width: parent.width
+          height: Style.space(6)
+          Rectangle {
+            anchors.fill: parent
+            radius: height / 2
+            color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+          }
+          Rectangle {
+            height: parent.height
+            radius: height / 2
+            width: Math.max(height, parent.width * (root.stats.gpuPercent / 100))
+            color: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.barForeground)
+            Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+            Behavior on color { ColorAnimation { duration: 200 } }
+          }
+        }
+
+        Row {
+          width: parent.width
+          visible: root.stats.gpuMemTotalMb > 0
+          spacing: Style.space(8)
+          Text {
+            text: "VRAM: " + root.stats.gpuMemUsedMb + " MB / " + root.stats.gpuMemTotalMb + " MB"
+            textFormat: Text.PlainText
+            color: Qt.darker(root.barForeground, 1.4)
+            font.family: root.barFontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
         }
       }
     }
@@ -691,6 +801,7 @@ Panel {
           anchors.verticalCenter: parent.verticalCenter
           sourceComponent: {
             if (modelData === "cpu") return cpuSlotComponent
+            if (modelData === "gpu") return gpuSlotComponent
             if (modelData === "memory") return memSlotComponent
             if (modelData === "disk") return diskSlotComponent
             if (modelData === "network") return netSlotComponent
@@ -717,6 +828,7 @@ Panel {
           anchors.horizontalCenter: parent.horizontalCenter
           sourceComponent: {
             if (modelData === "cpu") return verticalCpuComponent
+            if (modelData === "gpu") return verticalGpuComponent
             if (modelData === "memory") return verticalMemComponent
             if (modelData === "disk") return verticalDiskComponent
             return null

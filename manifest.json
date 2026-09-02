@@ -32,6 +32,9 @@
       "cpuAlertPercent": 85,
       "memAlertPercent": 85,
       "diskAlertPercent": 90,
+      "showGpu": false,
+      "panelShowGpu": false,
+      "gpuAlertPercent": 85,
       "barOrder": ["cpu", "memory", "disk", "network"],
       "panelOrder": ["cpu", "memory", "storage", "network"]
     },
@@ -50,6 +53,12 @@
         "type": "boolean",
         "label": "Show CPU in bar",
         "defaultValue": true
+      },
+      {
+        "key": "showGpu",
+        "type": "boolean",
+        "label": "Show GPU in bar",
+        "defaultValue": false
       },
       {
         "key": "showMemory",
@@ -89,6 +98,12 @@
         "defaultValue": true
       },
       {
+        "key": "panelShowGpu",
+        "type": "boolean",
+        "label": "Show GPU inside CPU panel in overview",
+        "defaultValue": false
+      },
+      {
         "key": "panelShowMemory",
         "type": "boolean",
         "label": "Show Memory in overview panel",
@@ -117,6 +132,15 @@
         "key": "cpuAlertPercent",
         "type": "integer",
         "label": "CPU alert threshold (%)",
+        "min": 50,
+        "max": 99,
+        "step": 5,
+        "defaultValue": 85
+      },
+      {
+        "key": "gpuAlertPercent",
+        "type": "integer",
+        "label": "GPU alert threshold (%)",
         "min": 50,
         "max": 99,
         "step": 5,

@@ -542,5 +542,32 @@ test("Model.parseOrder correctly parses arrays, strings, and fallbacks", () => {
   assert.deepStrictEqual(Model.parseOrder([], d), d);
 });
 
+test("Model.parseStats parses GPU metrics accurately", () => {
+  const raw = [
+    "gpu_percent\t35",
+    "gpu_temp\t58°C",
+    "gpu_mem_used_mb\t2048",
+    "gpu_mem_total_mb\t8192",
+    "gpu_name\tNVIDIA GeForce RTX 3080"
+  ].join("\n");
+
+  const s = Model.parseStats(raw, null, 1000);
+  assert.strictEqual(s.gpuPercent, 35);
+  assert.strictEqual(s.gpuTemp, "58°C");
+  assert.strictEqual(s.gpuMemUsedMb, 2048);
+  assert.strictEqual(s.gpuMemTotalMb, 8192);
+  assert.strictEqual(s.gpuName, "NVIDIA GeForce RTX 3080");
+});
+
+test("Model.createInitialState includes default GPU fields", () => {
+  const init = Model.createInitialState();
+  assert.strictEqual(init.gpuPercent, 0);
+  assert.strictEqual(init.gpuTemp, "");
+  assert.strictEqual(init.gpuMemUsedMb, 0);
+  assert.strictEqual(init.gpuMemTotalMb, 0);
+  assert.strictEqual(init.gpuName, "");
+});
+
+
 
 

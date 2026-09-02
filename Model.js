@@ -46,6 +46,11 @@ function createInitialState() {
     diskAvailKb: 0,
     diskPercent: 0,
     diskMount: "",
+    gpuPercent: 0,
+    gpuTemp: "",
+    gpuMemUsedMb: 0,
+    gpuMemTotalMb: 0,
+    gpuName: "",
     load1: "0.00",
     load5: "0.00",
     load15: "0.00",
@@ -215,6 +220,14 @@ function parseStats(raw, prevState, nowMs) {
   next.diskAvailKb = Math.max(0, diskAvail);
   next.diskPercent = Math.max(0, Math.min(100, Math.round(diskPct)));
   next.diskMount = sanitizeString(kv["disk_mount"] !== undefined ? kv["disk_mount"] : state.diskMount, 32, (state && state.diskMount) || "");
+
+  // 7. GPU metrics
+  var gpuPct = safeNumber(kv["gpu_percent"], state.gpuPercent || 0);
+  next.gpuPercent = Math.max(0, Math.min(100, Math.round(gpuPct)));
+  next.gpuTemp = sanitizeString(kv["gpu_temp"] !== undefined ? kv["gpu_temp"] : state.gpuTemp, 16, (state && state.gpuTemp) || "");
+  next.gpuMemUsedMb = Math.max(0, safeNumber(kv["gpu_mem_used_mb"], state.gpuMemUsedMb || 0));
+  next.gpuMemTotalMb = Math.max(0, safeNumber(kv["gpu_mem_total_mb"], state.gpuMemTotalMb || 0));
+  next.gpuName = sanitizeString(kv["gpu_name"] !== undefined ? kv["gpu_name"] : state.gpuName, 48, (state && state.gpuName) || "");
 
   next.initialized = true;
   return next;

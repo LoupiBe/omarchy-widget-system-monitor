@@ -153,8 +153,97 @@ collect_metrics() {
       printf "disk_total_kb\t%s\ndisk_used_kb\t%s\ndisk_avail_kb\t%s\ndisk_percent\t%s\ndisk_mount\t%s\n", (+$2 ? $2 : 0), (+$3 ? $3 : 0), (+$4 ? $4 : 0), int($5), substr($6, 1, 32)
     }
   '
+
+  # 8. GPU metrics (NVIDIA, AMD DRM sysfs, Intel DRM sysfs)
+  gpu_percent=""
+  gpu_temp=""
+  gpu_mem_used_mb=""
+  gpu_mem_total_mb=""
+  gpu_name=""
+
+  # 8a. NVIDIA via nvidia-smi if installed
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    nv_out=$(nvidia-smi --query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total,name --format=csv,noheader,nounits 2>/dev/null | head -n 1)
+    if [ -n "$nv_out" ]; then
+      IFS="," read -r nv_util nv_temp nv_mem_used nv_mem_total nv_name <<< "$nv_out"
+      gpu_percent=$(echo "$nv_util" | tr -d "[:space:]")
+      gpu_temp=$(echo "$nv_temp" | tr -d "[:space:]")
+      gpu_mem_used_mb=$(echo "$nv_mem_used" | tr -d "[:space:]")
+      gpu_mem_total_mb=$(echo "$nv_mem_total" | tr -d "[:space:]")
+      gpu_name=$(echo "$nv_name" | sed -e "s/^[[:space:]]*//" -e "s/[[:space:]]*$//" | cut -c 1-48)
+    fi
+  fi
+
+  # 8b. AMD DRM sysfs
+  if [ -z "$gpu_percent" ]; then
+    for busy_file in /sys/class/drm/card*/device/gpu_busy_percent; do
+      [ -f "$busy_file" ] || continue
+      read -r -t 0.1 gpu_percent < "$busy_file" 2>/dev/null
+      if [ -n "$gpu_percent" ]; then
+        card_dev="${busy_file%/gpu_busy_percent}"
+        for tf in "$card_dev"/hwmon/hwmon*/temp1_input; do
+          if [ -f "$tf" ] && read -r -t 0.1 raw_t < "$tf" 2>/dev/null; then
+            if [ -n "$raw_t" ] && [ "$raw_t" -gt 1000 ] 2>/dev/null; then
+              gpu_temp=$(( raw_t / 1000 ))
+            fi
+            break
+          fi
+        done
+        if [ -f "$card_dev/mem_info_vram_used" ] && read -r -t 0.1 used_b < "$card_dev/mem_info_vram_used" 2>/dev/null; then
+          if [ -f "$card_dev/mem_info_vram_total" ] && read -r -t 0.1 total_b < "$card_dev/mem_info_vram_total" 2>/dev/null; then
+            if [ -n "$used_b" ] && [ -n "$total_b" ] && [ "$total_b" -gt 0 ] 2>/dev/null; then
+              gpu_mem_used_mb=$(( used_b / 1048576 ))
+              gpu_mem_total_mb=$(( total_b / 1048576 ))
+            fi
+          fi
+        fi
+        gpu_name="AMD Radeon"
+        break
+      fi
+    done
+  fi
+
+  # 8c. Intel DRM sysfs
+  if [ -z "$gpu_percent" ]; then
+    for act_freq in /sys/class/drm/card*/gt_act_freq_mhz /sys/class/drm/card*/gt/gt0/rps_act_freq_mhz; do
+      [ -f "$act_freq" ] || continue
+      cur_f=""
+      read -r -t 0.1 cur_f < "$act_freq" 2>/dev/null
+      if [ -n "$cur_f" ]; then
+        max_file="${act_freq%/*}/gt_max_freq_mhz"
+        [ ! -f "$max_file" ] && max_file="${act_freq%/*}/rps_max_freq_mhz"
+        min_file="${act_freq%/*}/gt_min_freq_mhz"
+        [ ! -f "$min_file" ] && min_file="${act_freq%/*}/rps_min_freq_mhz"
+        max_f=""
+        min_f=""
+        [ -f "$max_file" ] && read -r -t 0.1 max_f < "$max_file" 2>/dev/null
+        [ -f "$min_file" ] && read -r -t 0.1 min_f < "$min_file" 2>/dev/null
+        if [ -n "$max_f" ] && [ "$max_f" -gt 0 ] 2>/dev/null; then
+          min_f=${min_f:-0}
+          if [ "$max_f" -gt "$min_f" ]; then
+            gpu_percent=$(( (cur_f - min_f) * 100 / (max_f - min_f) ))
+          else
+            gpu_percent=$(( cur_f * 100 / max_f ))
+          fi
+          [ "$gpu_percent" -lt 0 ] && gpu_percent=0
+          [ "$gpu_percent" -gt 100 ] && gpu_percent=100
+          gpu_name="Intel Graphics"
+        fi
+        break
+      fi
+    done
+  fi
+
+  if [ -n "$gpu_percent" ]; then
+    printf "gpu_percent\t%s\n" "$gpu_percent"
+    [ -n "$gpu_temp" ] && printf "gpu_temp\t%s°C\n" "$gpu_temp"
+    [ -n "$gpu_mem_used_mb" ] && printf "gpu_mem_used_mb\t%s\n" "$gpu_mem_used_mb"
+    [ -n "$gpu_mem_total_mb" ] && printf "gpu_mem_total_mb\t%s\n" "$gpu_mem_total_mb"
+    [ -n "$gpu_name" ] && printf "gpu_name\t%s\n" "$gpu_name"
+  fi
 }
 
 collect_metrics | head -n 128 | head -c 8192
+
 
 

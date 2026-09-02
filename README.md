@@ -68,17 +68,20 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
   "id": "io.github.loupibe.system-monitor",
   "refreshIntervalSec": 2,
   "showCpu": true,
+  "showGpu": false,
   "showMemory": true,
   "showDisk": false,
   "showNetwork": true,
   "showTemp": false,
   "barOrder": ["cpu", "memory", "disk", "network"],
   "panelShowCpu": true,
+  "panelShowGpu": false,
   "panelShowMemory": true,
   "panelShowDisk": true,
   "panelShowNetwork": true,
   "panelOrder": ["cpu", "memory", "storage", "network"],
   "cpuAlertPercent": 85,
+  "gpuAlertPercent": 85,
   "memAlertPercent": 85,
   "diskAlertPercent": 90
 }
@@ -88,17 +91,20 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
 |---|---|---|---|
 | `refreshIntervalSec` | integer | `2` | Update interval in seconds (1 to 10). |
 | `showCpu` | boolean | `true` | Show or hide CPU load percentage in the top bar pill. |
+| `showGpu` | boolean | `false` | Show or hide GPU load percentage in the top bar pill. |
 | `showMemory` | boolean | `true` | Show or hide RAM percentage in the top bar pill. |
 | `showDisk` | boolean | `false` | Show or hide Storage (Disk) % & free space in the top bar pill. |
 | `showNetwork` | boolean | `true` | Show or hide download/upload bandwidth in the top bar pill. |
 | `showTemp` | boolean | `false` | Show or hide CPU temperature in the top bar pill alongside CPU %. |
-| `barOrder` | list / string | `["cpu", "memory", "disk", "network"]` | Custom order of metric slots on the top bar pill. |
+| `barOrder` | list / string | `["cpu", "memory", "disk", "network"]` | Custom order of metric slots on the top bar pill (`cpu`, `gpu`, `memory`, `disk`, `network`). |
 | `panelShowCpu` | boolean | `true` | Show or hide the CPU section in the overview popup panel. |
+| `panelShowGpu` | boolean | `false` | Show or hide GPU load meter and VRAM inside the CPU panel in the overview. |
 | `panelShowMemory` | boolean | `true` | Show or hide the Memory section in the overview popup panel. |
 | `panelShowDisk` | boolean | `true` | Show or hide the Storage section in the overview popup panel. |
 | `panelShowNetwork` | boolean | `true` | Show or hide the Network section in the overview popup panel. |
 | `panelOrder` | list / string | `["cpu", "memory", "storage", "network"]` | Custom order of sections in the popup overview panel. |
 | `cpuAlertPercent` | integer | `85` | CPU % threshold to trigger urgent alert color (50 to 99). |
+| `gpuAlertPercent` | integer | `85` | GPU % threshold to trigger urgent alert color (50 to 99). |
 | `memAlertPercent` | integer | `85` | Memory % threshold to trigger urgent alert color (50 to 99). |
 | `diskAlertPercent` | integer | `90` | Disk % threshold to trigger urgent alert color (50 to 99). |
 
