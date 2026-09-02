@@ -26,6 +26,37 @@ Panel {
   property int cpuAlertPercent: setting("cpuAlertPercent", 85)
   property int memAlertPercent: setting("memAlertPercent", 85)
   property int diskAlertPercent: setting("diskAlertPercent", 90)
+  property var barOrder: setting("barOrder", ["cpu", "memory", "disk", "network"])
+  property var panelOrder: setting("panelOrder", ["cpu", "memory", "storage", "network"])
+
+  readonly property var visibleBarSlots: {
+    var order = Model.parseOrder(root.barOrder, ["cpu", "memory", "disk", "network"]);
+    var list = [];
+    for (var i = 0; i < order.length; i++) {
+      var key = order[i];
+      if (key === "cpu" && root.showCpu) list.push("cpu");
+      else if ((key === "memory" || key === "ram") && root.showMemory) list.push("memory");
+      else if ((key === "disk" || key === "storage") && root.showDisk) list.push("disk");
+      else if ((key === "network" || key === "net") && root.showNetwork) list.push("network");
+      else if ((key === "rx" || key === "download") && root.showNetwork) list.push("rx");
+      else if ((key === "tx" || key === "upload") && root.showNetwork) list.push("tx");
+    }
+    return list;
+  }
+
+  readonly property var visiblePanelSections: {
+    var order = Model.parseOrder(root.panelOrder, ["cpu", "memory", "storage", "network"]);
+    var list = [];
+    for (var i = 0; i < order.length; i++) {
+      var key = order[i];
+      if (key === "cpu" && root.panelShowCpu) list.push("cpu");
+      else if ((key === "memory" || key === "ram") && root.panelShowMemory) list.push("memory");
+      else if ((key === "storage" || key === "disk") && root.panelShowDisk) list.push("storage");
+      else if ((key === "network" || key === "net") && root.panelShowNetwork) list.push("network");
+    }
+    return list;
+  }
+
   readonly property bool vertical: bar ? bar.vertical : false
   readonly property int barSize: bar ? bar.barSize : Style.bar.sizeHorizontal
   readonly property string statsScriptPath: localPath(Qt.resolvedUrl("stats.sh"))
@@ -84,6 +115,548 @@ Panel {
     onTriggered: root.refresh()
   }
 
+  // --- Slot Components for Bar Pill ---
+  Component {
+    id: cpuSlotComponent
+    Row {
+      spacing: Style.space(3)
+      anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+      Text {
+        width: root.showTemp && root.stats.cpuTemp ? Style.space(68) : Style.space(34)
+        horizontalAlignment: Text.AlignRight
+        text: root.stats.cpuPercent + "%" + (root.showTemp && root.stats.cpuTemp ? " " + root.stats.cpuTemp : "")
+        textFormat: Text.PlainText
+        color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+      Text {
+        text: ""
+        textFormat: Text.PlainText
+        color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+    }
+  }
+
+  Component {
+    id: memSlotComponent
+    Row {
+      spacing: Style.space(3)
+      anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+      Text {
+        width: Style.space(34)
+        horizontalAlignment: Text.AlignRight
+        text: Math.round(root.stats.memPercent) + "%"
+        textFormat: Text.PlainText
+        color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+      Text {
+        text: "󰍛"
+        textFormat: Text.PlainText
+        color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+    }
+  }
+
+  Component {
+    id: diskSlotComponent
+    Row {
+      spacing: Style.space(3)
+      anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+      Text {
+        width: Style.space(76)
+        horizontalAlignment: Text.AlignRight
+        text: root.stats.diskPercent + "% (" + Model.formatKbCompact(root.stats.diskAvailKb) + ")"
+        textFormat: Text.PlainText
+        color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+      Text {
+        text: "󰋊"
+        textFormat: Text.PlainText
+        color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+    }
+  }
+
+  Component {
+    id: netSlotComponent
+    Row {
+      spacing: Style.space(10)
+      anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+      Loader { sourceComponent: dlSlotComponent; anchors.verticalCenter: parent.verticalCenter }
+      Loader { sourceComponent: ulSlotComponent; anchors.verticalCenter: parent.verticalCenter }
+    }
+  }
+
+  Component {
+    id: dlSlotComponent
+    Row {
+      spacing: Style.space(3)
+      anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+      Text {
+        width: Style.space(76)
+        horizontalAlignment: Text.AlignRight
+        text: Model.formatSpeed(root.stats.rxSpeed)
+        textFormat: Text.PlainText
+        color: root.barForeground
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+      Text {
+        text: "󰇚"
+        textFormat: Text.PlainText
+        color: root.barForeground
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+    }
+  }
+
+  Component {
+    id: ulSlotComponent
+    Row {
+      spacing: Style.space(3)
+      anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+      Text {
+        width: Style.space(76)
+        horizontalAlignment: Text.AlignRight
+        text: Model.formatSpeed(root.stats.txSpeed)
+        textFormat: Text.PlainText
+        color: root.barForeground
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+      Text {
+        text: "󰕒"
+        textFormat: Text.PlainText
+        color: root.barForeground
+        font.family: root.barFontFamily
+        font.pixelSize: Style.font.bodySmall
+        renderType: Text.NativeRendering
+        anchors.verticalCenter: parent.verticalCenter
+      }
+    }
+  }
+
+  // --- Vertical Bar Components ---
+  Component {
+    id: verticalCpuComponent
+    Text {
+      text: " " + root.stats.cpuPercent + "%" + (root.showTemp && root.stats.cpuTemp ? " " + root.stats.cpuTemp : "")
+      textFormat: Text.PlainText
+      color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : root.barForeground
+      font.family: root.barFontFamily
+      font.pixelSize: Style.font.caption
+      renderType: Text.NativeRendering
+    }
+  }
+
+  Component {
+    id: verticalMemComponent
+    Text {
+      text: "󰍛 " + Math.round(root.stats.memPercent) + "%"
+      textFormat: Text.PlainText
+      color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : root.barForeground
+      font.family: root.barFontFamily
+      font.pixelSize: Style.font.caption
+      renderType: Text.NativeRendering
+    }
+  }
+
+  Component {
+    id: verticalDiskComponent
+    Text {
+      text: "󰋊 " + root.stats.diskPercent + "%"
+      textFormat: Text.PlainText
+      color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+      font.family: root.barFontFamily
+      font.pixelSize: Style.font.caption
+      renderType: Text.NativeRendering
+    }
+  }
+
+  // --- Section Components for Overview Panel ---
+  Component {
+    id: cpuSectionComponent
+    Column {
+      width: parent ? parent.width : 0
+      spacing: Style.space(6)
+
+      Row {
+        width: parent.width
+        Text {
+          text: "CPU LOAD"
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: true
+        }
+        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
+        Text {
+          text: root.stats.cpuPercent + "%"
+          textFormat: Text.PlainText
+          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+          font.bold: true
+        }
+      }
+
+      // CPU Progress Bar
+      Item {
+        width: parent.width
+        height: Style.space(6)
+        Rectangle {
+          anchors.fill: parent
+          radius: height / 2
+          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+        }
+        Rectangle {
+          height: parent.height
+          radius: height / 2
+          width: Math.max(height, parent.width * (root.stats.cpuPercent / 100))
+          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
+          Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+          Behavior on color { ColorAnimation { duration: 200 } }
+        }
+      }
+
+      // Per-Core Mini Bars
+      Flow {
+        width: parent.width
+        spacing: Style.space(4)
+        visible: root.stats.cores.length > 0
+
+        Repeater {
+          model: root.stats.cores
+          delegate: Item {
+            required property var modelData
+            width: Math.max(Style.space(32), (parent.width - (Math.min(8, root.stats.cores.length) - 1) * Style.space(4)) / Math.min(8, root.stats.cores.length))
+            height: Style.space(20)
+
+            Column {
+              anchors.fill: parent
+              spacing: Style.space(2)
+              Text {
+                text: modelData.label + " " + modelData.percent + "%"
+                textFormat: Text.PlainText
+                font.pixelSize: Style.space(9)
+                font.family: root.barFontFamily
+                color: Qt.darker(root.barForeground, 1.3)
+                elide: Text.ElideRight
+                width: parent.width
+              }
+              Rectangle {
+                width: parent.width
+                height: Style.space(3)
+                radius: height / 2
+                color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                Rectangle {
+                  height: parent.height
+                  radius: height / 2
+                  width: Math.max(height, parent.width * (modelData.percent / 100))
+                  color: modelData.percent >= root.cpuAlertPercent ? Color.urgent : (modelData.percent >= 65 ? Color.accent : root.barForeground)
+                }
+              }
+            }
+          }
+        }
+      }
+
+      Row {
+        width: parent.width
+        spacing: Style.space(8)
+        Text {
+          text: "Load: " + root.stats.load1 + ", " + root.stats.load5 + ", " + root.stats.load15
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+        }
+        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2); height: 1 }
+        Text {
+          text: root.stats.coreCount + " Cores"
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+        }
+      }
+    }
+  }
+
+  Component {
+    id: memSectionComponent
+    Column {
+      width: parent ? parent.width : 0
+      spacing: Style.space(6)
+
+      Row {
+        width: parent.width
+        Text {
+          text: "MEMORY"
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: true
+        }
+        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
+        Text {
+          text: Math.round(root.stats.memPercent) + "% (" + Model.formatKb(root.stats.memUsedKb) + " / " + Model.formatKb(root.stats.memTotalKb) + ")"
+          textFormat: Text.PlainText
+          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+          font.bold: true
+        }
+      }
+
+      // Memory Progress Bar
+      Item {
+        width: parent.width
+        height: Style.space(6)
+        Rectangle {
+          anchors.fill: parent
+          radius: height / 2
+          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+        }
+        Rectangle {
+          height: parent.height
+          radius: height / 2
+          width: Math.max(height, parent.width * (root.stats.memPercent / 100))
+          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
+          Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+          Behavior on color { ColorAnimation { duration: 200 } }
+        }
+      }
+
+      Row {
+        width: parent.width
+        spacing: Style.space(8)
+        Text {
+          text: "Avail: " + Model.formatKb(root.stats.memAvailKb)
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+        }
+        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2); height: 1 }
+        Text {
+          text: "Swap: " + Model.formatKb(root.stats.swapUsedKb) + " / " + Model.formatKb(root.stats.swapTotalKb)
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+        }
+      }
+    }
+  }
+
+  Component {
+    id: storageSectionComponent
+    Column {
+      width: parent ? parent.width : 0
+      spacing: Style.space(6)
+
+      Row {
+        width: parent.width
+        Text {
+          text: "STORAGE (" + (root.stats.diskMount || "$HOME") + ")"
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: true
+        }
+        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
+        Text {
+          text: root.stats.diskPercent + "% (" + Model.formatKb(root.stats.diskUsedKb) + " / " + Model.formatKb(root.stats.diskTotalKb) + ")"
+          textFormat: Text.PlainText
+          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+          font.bold: true
+        }
+      }
+
+      // Disk Progress Bar
+      Item {
+        width: parent.width
+        height: Style.space(6)
+        Rectangle {
+          anchors.fill: parent
+          radius: height / 2
+          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+        }
+        Rectangle {
+          height: parent.height
+          radius: height / 2
+          width: Math.max(height, parent.width * (root.stats.diskPercent / 100))
+          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+          Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+          Behavior on color { ColorAnimation { duration: 200 } }
+        }
+      }
+
+      Row {
+        width: parent.width
+        spacing: Style.space(8)
+        Text {
+          text: "Free: " + Model.formatKb(root.stats.diskAvailKb)
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+        }
+        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2); height: 1 }
+        Text {
+          text: "Used: " + Model.formatKb(root.stats.diskUsedKb)
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.bodySmall
+        }
+      }
+    }
+  }
+
+  Component {
+    id: netSectionComponent
+    Column {
+      width: parent ? parent.width : 0
+      spacing: Style.space(6)
+
+      Row {
+        width: parent.width
+        Text {
+          text: "NETWORK (" + root.stats.netIface + ")"
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: true
+        }
+        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
+        Text {
+          text: "Live Traffic"
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.4)
+          font.family: root.barFontFamily
+          font.pixelSize: Style.font.caption
+        }
+      }
+
+      Row {
+        width: parent.width
+        spacing: Style.space(12)
+
+        // Download
+        Item {
+          width: (parent.width - parent.spacing) / 2
+          height: dlCol.implicitHeight
+          Column {
+            id: dlCol
+            anchors.left: parent.left
+            anchors.right: parent.right
+            spacing: Style.space(2)
+            Row {
+              spacing: Style.space(6)
+              Text {
+                text: "󰇚"
+                textFormat: Text.PlainText
+                color: Color.accent
+                font.family: root.barFontFamily
+                font.pixelSize: Style.font.body
+              }
+              Text {
+                text: Model.formatSpeed(root.stats.rxSpeed)
+                textFormat: Text.PlainText
+                color: root.barForeground
+                font.family: root.barFontFamily
+                font.pixelSize: Style.font.body
+                font.bold: true
+              }
+            }
+            Text {
+              text: "Total: " + Model.formatBytes(root.stats.netRxBytes)
+              textFormat: Text.PlainText
+              color: Qt.darker(root.barForeground, 1.4)
+              font.family: root.barFontFamily
+              font.pixelSize: Style.font.bodySmall
+            }
+          }
+        }
+
+        // Upload
+        Item {
+          width: (parent.width - parent.spacing) / 2
+          height: ulCol.implicitHeight
+          Column {
+            id: ulCol
+            anchors.left: parent.left
+            anchors.right: parent.right
+            spacing: Style.space(2)
+            Row {
+              spacing: Style.space(6)
+              Text {
+                text: "󰕒"
+                textFormat: Text.PlainText
+                color: Qt.lighter(Color.accent, 1.2)
+                font.family: root.barFontFamily
+                font.pixelSize: Style.font.body
+              }
+              Text {
+                text: Model.formatSpeed(root.stats.txSpeed)
+                textFormat: Text.PlainText
+                color: root.barForeground
+                font.family: root.barFontFamily
+                font.pixelSize: Style.font.body
+                font.bold: true
+              }
+            }
+            Text {
+              text: "Total: " + Model.formatBytes(root.stats.netTxBytes)
+              textFormat: Text.PlainText
+              color: Qt.darker(root.barForeground, 1.4)
+              font.family: root.barFontFamily
+              font.pixelSize: Style.font.bodySmall
+            }
+          }
+        }
+      }
+    }
+  }
+
   WidgetButton {
     id: button
     anchors.fill: parent
@@ -111,138 +684,20 @@ Panel {
       spacing: Style.space(10)
       visible: !root.vertical
 
-      // CPU slot
-      Row {
-        spacing: Style.space(3)
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.showCpu
-        Text {
-          width: root.showTemp && root.stats.cpuTemp ? Style.space(68) : Style.space(34)
-          horizontalAlignment: Text.AlignRight
-          text: root.stats.cpuPercent + "%" + (root.showTemp && root.stats.cpuTemp ? " " + root.stats.cpuTemp : "")
-          textFormat: Text.PlainText
-          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
+      Repeater {
+        model: root.visibleBarSlots
+        delegate: Loader {
+          required property string modelData
           anchors.verticalCenter: parent.verticalCenter
-        }
-        Text {
-          text: ""
-          textFormat: Text.PlainText
-          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
-          anchors.verticalCenter: parent.verticalCenter
-        }
-      }
-
-      // RAM slot
-      Row {
-        spacing: Style.space(3)
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.showMemory
-        Text {
-          width: Style.space(34)
-          horizontalAlignment: Text.AlignRight
-          text: Math.round(root.stats.memPercent) + "%"
-          textFormat: Text.PlainText
-          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
-          anchors.verticalCenter: parent.verticalCenter
-        }
-        Text {
-          text: "󰍛"
-          textFormat: Text.PlainText
-          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
-          anchors.verticalCenter: parent.verticalCenter
-        }
-      }
-
-      // Disk slot
-      Row {
-        spacing: Style.space(3)
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.showDisk
-        Text {
-          width: Style.space(76)
-          horizontalAlignment: Text.AlignRight
-          text: root.stats.diskPercent + "% (" + Model.formatKbCompact(root.stats.diskAvailKb) + ")"
-          textFormat: Text.PlainText
-          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
-          anchors.verticalCenter: parent.verticalCenter
-        }
-        Text {
-          text: "󰋊"
-          textFormat: Text.PlainText
-          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
-          anchors.verticalCenter: parent.verticalCenter
-        }
-      }
-
-      // Download slot
-      Row {
-        spacing: Style.space(3)
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.showNetwork
-        Text {
-          width: Style.space(76)
-          horizontalAlignment: Text.AlignRight
-          text: Model.formatSpeed(root.stats.rxSpeed)
-          textFormat: Text.PlainText
-          color: root.barForeground
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
-          anchors.verticalCenter: parent.verticalCenter
-        }
-        Text {
-          text: "󰇚"
-          textFormat: Text.PlainText
-          color: root.barForeground
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
-          anchors.verticalCenter: parent.verticalCenter
-        }
-      }
-
-      // Upload slot
-      Row {
-        spacing: Style.space(3)
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.showNetwork
-        Text {
-          width: Style.space(76)
-          horizontalAlignment: Text.AlignRight
-          text: Model.formatSpeed(root.stats.txSpeed)
-          textFormat: Text.PlainText
-          color: root.barForeground
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
-          anchors.verticalCenter: parent.verticalCenter
-        }
-        Text {
-          text: "󰕒"
-          textFormat: Text.PlainText
-          color: root.barForeground
-          font.family: root.barFontFamily
-          font.pixelSize: Style.font.bodySmall
-          renderType: Text.NativeRendering
-          anchors.verticalCenter: parent.verticalCenter
+          sourceComponent: {
+            if (modelData === "cpu") return cpuSlotComponent
+            if (modelData === "memory") return memSlotComponent
+            if (modelData === "disk") return diskSlotComponent
+            if (modelData === "network") return netSlotComponent
+            if (modelData === "rx") return dlSlotComponent
+            if (modelData === "tx") return ulSlotComponent
+            return null
+          }
         }
       }
     }
@@ -255,32 +710,18 @@ Panel {
       visible: root.vertical === true
       opacity: root.vertical === true ? 1.0 : 0.0
 
-      Text {
-        visible: root.showCpu
-        text: " " + root.stats.cpuPercent + "%" + (root.showTemp && root.stats.cpuTemp ? " " + root.stats.cpuTemp : "")
-        textFormat: Text.PlainText
-        color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : root.barForeground
-        font.family: root.barFontFamily
-        font.pixelSize: Style.font.caption
-        renderType: Text.NativeRendering
-      }
-      Text {
-        visible: root.showMemory
-        text: "󰍛 " + Math.round(root.stats.memPercent) + "%"
-        textFormat: Text.PlainText
-        color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : root.barForeground
-        font.family: root.barFontFamily
-        font.pixelSize: Style.font.caption
-        renderType: Text.NativeRendering
-      }
-      Text {
-        visible: root.showDisk
-        text: "󰋊 " + root.stats.diskPercent + "%"
-        textFormat: Text.PlainText
-        color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
-        font.family: root.barFontFamily
-        font.pixelSize: Style.font.caption
-        renderType: Text.NativeRendering
+      Repeater {
+        model: root.visibleBarSlots
+        delegate: Loader {
+          required property string modelData
+          anchors.horizontalCenter: parent.horizontalCenter
+          sourceComponent: {
+            if (modelData === "cpu") return verticalCpuComponent
+            if (modelData === "memory") return verticalMemComponent
+            if (modelData === "disk") return verticalDiskComponent
+            return null
+          }
+        }
       }
     }
   }
@@ -348,367 +789,26 @@ Panel {
           }
         }
 
-        PanelSeparator { foreground: root.barForeground }
-
-        // --- CPU Section ---
-        Column {
-          width: parent.width
-          spacing: Style.space(6)
-          visible: root.panelShowCpu
-
-          Row {
+        Repeater {
+          model: root.visiblePanelSections
+          delegate: Column {
+            required property string modelData
+            required property int index
             width: parent.width
-            Text {
-              text: "CPU LOAD"
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.caption
-              font.bold: true
-            }
-            Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
-            Text {
-              text: root.stats.cpuPercent + "%"
-              textFormat: Text.PlainText
-              color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-              font.bold: true
-            }
-          }
+            spacing: Style.space(10)
 
-          // CPU Progress Bar
-          Item {
-            width: parent.width
-            height: Style.space(6)
-            Rectangle {
-              anchors.fill: parent
-              radius: height / 2
-              color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
-            }
-            Rectangle {
-              height: parent.height
-              radius: height / 2
-              width: Math.max(height, parent.width * (root.stats.cpuPercent / 100))
-              color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
-              Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
-              Behavior on color { ColorAnimation { duration: 200 } }
-            }
-          }
-
-          // Per-Core Mini Bars
-          Flow {
-            width: parent.width
-            spacing: Style.space(4)
-            visible: root.stats.cores.length > 0
-
-            Repeater {
-              model: root.stats.cores
-              delegate: Item {
-                required property var modelData
-                width: Math.max(Style.space(32), (column.width - (Math.min(8, root.stats.cores.length) - 1) * Style.space(4)) / Math.min(8, root.stats.cores.length))
-                height: Style.space(20)
-
-                Column {
-                  anchors.fill: parent
-                  spacing: Style.space(2)
-                  Text {
-                    text: modelData.label + " " + modelData.percent + "%"
-                    textFormat: Text.PlainText
-                    font.pixelSize: Style.space(9)
-                    font.family: root.barFontFamily
-                    color: Qt.darker(root.barForeground, 1.3)
-                    elide: Text.ElideRight
-                    width: parent.width
-                  }
-                  Rectangle {
-                    width: parent.width
-                    height: Style.space(3)
-                    radius: height / 2
-                    color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
-                    Rectangle {
-                      height: parent.height
-                      radius: height / 2
-                      width: Math.max(height, parent.width * (modelData.percent / 100))
-                      color: modelData.percent >= root.cpuAlertPercent ? Color.urgent : (modelData.percent >= 65 ? Color.accent : root.barForeground)
-                    }
-                  }
-                }
-              }
-            }
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.space(8)
-            Text {
-              text: "Load: " + root.stats.load1 + ", " + root.stats.load5 + ", " + root.stats.load15
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
-            Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2); height: 1 }
-            Text {
-              text: root.stats.coreCount + " Cores"
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
-          }
-        }
-
-        PanelSeparator {
-          foreground: root.barForeground
-          visible: root.panelShowCpu && (root.panelShowMemory || root.panelShowDisk || root.panelShowNetwork)
-        }
-
-        // --- Memory Section ---
-        Column {
-          width: parent.width
-          spacing: Style.space(6)
-          visible: root.panelShowMemory
-
-          Row {
-            width: parent.width
-            Text {
-              text: "MEMORY"
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.caption
-              font.bold: true
-            }
-            Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
-            Text {
-              text: Math.round(root.stats.memPercent) + "% (" + Model.formatKb(root.stats.memUsedKb) + " / " + Model.formatKb(root.stats.memTotalKb) + ")"
-              textFormat: Text.PlainText
-              color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-              font.bold: true
-            }
-          }
-
-          // Memory Progress Bar
-          Item {
-            width: parent.width
-            height: Style.space(6)
-            Rectangle {
-              anchors.fill: parent
-              radius: height / 2
-              color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
-            }
-            Rectangle {
-              height: parent.height
-              radius: height / 2
-              width: Math.max(height, parent.width * (root.stats.memPercent / 100))
-              color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
-              Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
-              Behavior on color { ColorAnimation { duration: 200 } }
-            }
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.space(8)
-            Text {
-              text: "Avail: " + Model.formatKb(root.stats.memAvailKb)
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
-            Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2); height: 1 }
-            Text {
-              text: "Swap: " + Model.formatKb(root.stats.swapUsedKb) + " / " + Model.formatKb(root.stats.swapTotalKb)
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
-          }
-        }
-
-        PanelSeparator {
-          foreground: root.barForeground
-          visible: root.panelShowMemory && (root.panelShowDisk || root.panelShowNetwork)
-        }
-
-        // --- Storage (Disk) Section ---
-        Column {
-          width: parent.width
-          spacing: Style.space(6)
-          visible: root.panelShowDisk
-
-          Row {
-            width: parent.width
-            Text {
-              text: "STORAGE (" + (root.stats.diskMount || "$HOME") + ")"
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.caption
-              font.bold: true
-            }
-            Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
-            Text {
-              text: root.stats.diskPercent + "% (" + Model.formatKb(root.stats.diskUsedKb) + " / " + Model.formatKb(root.stats.diskTotalKb) + ")"
-              textFormat: Text.PlainText
-              color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-              font.bold: true
-            }
-          }
-
-          // Disk Progress Bar
-          Item {
-            width: parent.width
-            height: Style.space(6)
-            Rectangle {
-              anchors.fill: parent
-              radius: height / 2
-              color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
-            }
-            Rectangle {
-              height: parent.height
-              radius: height / 2
-              width: Math.max(height, parent.width * (root.stats.diskPercent / 100))
-              color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
-              Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
-              Behavior on color { ColorAnimation { duration: 200 } }
-            }
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.space(8)
-            Text {
-              text: "Free: " + Model.formatKb(root.stats.diskAvailKb)
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
-            Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2); height: 1 }
-            Text {
-              text: "Used: " + Model.formatKb(root.stats.diskUsedKb)
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.bodySmall
-            }
-          }
-        }
-
-        PanelSeparator {
-          foreground: root.barForeground
-          visible: root.panelShowDisk && root.panelShowNetwork
-        }
-
-        // --- Network Section ---
-        Column {
-          width: parent.width
-          spacing: Style.space(6)
-          visible: root.panelShowNetwork
-
-          Row {
-            width: parent.width
-            Text {
-              text: "NETWORK (" + root.stats.netIface + ")"
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.caption
-              font.bold: true
-            }
-            Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
-            Text {
-              text: "Live Traffic"
-              textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
-              font.family: root.barFontFamily
-              font.pixelSize: Style.font.caption
-            }
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.space(12)
-
-            // Download
-            Item {
-              width: (parent.width - parent.spacing) / 2
-              height: dlCol.implicitHeight
-              Column {
-                id: dlCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                spacing: Style.space(2)
-                Row {
-                  spacing: Style.space(6)
-                  Text {
-                    text: "󰇚"
-                    textFormat: Text.PlainText
-                    color: Color.accent
-                    font.family: root.barFontFamily
-                    font.pixelSize: Style.font.body
-                  }
-                  Text {
-                    text: Model.formatSpeed(root.stats.rxSpeed)
-                    textFormat: Text.PlainText
-                    color: root.barForeground
-                    font.family: root.barFontFamily
-                    font.pixelSize: Style.font.body
-                    font.bold: true
-                  }
-                }
-                Text {
-                  text: "Total: " + Model.formatBytes(root.stats.netRxBytes)
-                  textFormat: Text.PlainText
-                  color: Qt.darker(root.barForeground, 1.4)
-                  font.family: root.barFontFamily
-                  font.pixelSize: Style.font.bodySmall
-                }
-              }
+            PanelSeparator {
+              foreground: root.barForeground
             }
 
-            // Upload
-            Item {
-              width: (parent.width - parent.spacing) / 2
-              height: ulCol.implicitHeight
-              Column {
-                id: ulCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                spacing: Style.space(2)
-                Row {
-                  spacing: Style.space(6)
-                  Text {
-                    text: "󰕒"
-                    textFormat: Text.PlainText
-                    color: Qt.lighter(Color.accent, 1.2)
-                    font.family: root.barFontFamily
-                    font.pixelSize: Style.font.body
-                  }
-                  Text {
-                    text: Model.formatSpeed(root.stats.txSpeed)
-                    textFormat: Text.PlainText
-                    color: root.barForeground
-                    font.family: root.barFontFamily
-                    font.pixelSize: Style.font.body
-                    font.bold: true
-                  }
-                }
-                Text {
-                  text: "Total: " + Model.formatBytes(root.stats.netTxBytes)
-                  textFormat: Text.PlainText
-                  color: Qt.darker(root.barForeground, 1.4)
-                  font.family: root.barFontFamily
-                  font.pixelSize: Style.font.bodySmall
-                }
+            Loader {
+              width: parent.width
+              sourceComponent: {
+                if (modelData === "cpu") return cpuSectionComponent
+                if (modelData === "memory") return memSectionComponent
+                if (modelData === "storage") return storageSectionComponent
+                if (modelData === "network") return netSectionComponent
+                return null
               }
             }
           }

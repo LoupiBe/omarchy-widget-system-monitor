@@ -31,7 +31,9 @@
       "panelShowNetwork": true,
       "cpuAlertPercent": 85,
       "memAlertPercent": 85,
-      "diskAlertPercent": 90
+      "diskAlertPercent": 90,
+      "barOrder": ["cpu", "memory", "disk", "network"],
+      "panelOrder": ["cpu", "memory", "storage", "network"]
     },
     "schema": [
       {
@@ -74,6 +76,13 @@
         "defaultValue": false
       },
       {
+        "key": "barOrder",
+        "type": "list",
+        "label": "Top bar metric order",
+        "defaultValue": ["cpu", "memory", "disk", "network"],
+        "description": "Order of metric slots on the top bar pill (e.g. ['cpu', 'memory', 'disk', 'network'] or 'disk, cpu, memory, network')."
+      },
+      {
         "key": "panelShowCpu",
         "type": "boolean",
         "label": "Show CPU in overview panel",
@@ -96,6 +105,13 @@
         "type": "boolean",
         "label": "Show Network in overview panel",
         "defaultValue": true
+      },
+      {
+        "key": "panelOrder",
+        "type": "list",
+        "label": "Overview panel section order",
+        "defaultValue": ["cpu", "memory", "storage", "network"],
+        "description": "Order of sections in the popup overview panel (e.g. ['cpu', 'memory', 'storage', 'network'] or 'storage, cpu, memory, network')."
       },
       {
         "key": "cpuAlertPercent",

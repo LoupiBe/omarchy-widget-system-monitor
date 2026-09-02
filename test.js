@@ -530,4 +530,17 @@ test("Model.formatKbCompact formats compact values cleanly", () => {
   assert.strictEqual(Model.formatKbCompact(120 * 1024 * 1024), "120G");
 });
 
+test("Model.parseOrder correctly parses arrays, strings, and fallbacks", () => {
+  const d = ["cpu", "memory", "storage", "network"];
+  assert.deepStrictEqual(Model.parseOrder(["storage", "cpu"], d), ["storage", "cpu"]);
+  assert.deepStrictEqual(Model.parseOrder(["STORAGE", " CPU ", "NET"], d), ["storage", "cpu", "net"]);
+  assert.deepStrictEqual(Model.parseOrder("storage, cpu, ram, net", d), ["storage", "cpu", "ram", "net"]);
+  assert.deepStrictEqual(Model.parseOrder("  storage ,  cpu  ", d), ["storage", "cpu"]);
+  assert.deepStrictEqual(Model.parseOrder(null, d), d);
+  assert.deepStrictEqual(Model.parseOrder(undefined, d), d);
+  assert.deepStrictEqual(Model.parseOrder("", d), d);
+  assert.deepStrictEqual(Model.parseOrder([], d), d);
+});
+
+
 

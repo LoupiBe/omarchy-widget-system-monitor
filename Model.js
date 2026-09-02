@@ -261,6 +261,17 @@ function formatKbCompact(kb) {
   return (k / (1024 * 1024)).toFixed(0) + "G";
 }
 
+function parseOrder(val, defaultOrder) {
+  var d = Array.isArray(defaultOrder) ? defaultOrder : [];
+  if (Array.isArray(val) && val.length > 0) {
+    return val.map(function(s) { return String(s).trim().toLowerCase(); }).filter(Boolean);
+  }
+  if (typeof val === "string" && val.trim().length > 0) {
+    return val.split(",").map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean);
+  }
+  return d;
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     createInitialState: createInitialState,
@@ -270,6 +281,7 @@ if (typeof module !== "undefined") {
     formatBytes: formatBytes,
     formatKb: formatKb,
     formatKbCompact: formatKbCompact,
+    parseOrder: parseOrder,
     sanitizeString: sanitizeString,
     safeNumber: safeNumber
   };

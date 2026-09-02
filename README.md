@@ -53,10 +53,12 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
   "showDisk": false,
   "showNetwork": true,
   "showTemp": false,
+  "barOrder": ["cpu", "memory", "disk", "network"],
   "panelShowCpu": true,
   "panelShowMemory": true,
   "panelShowDisk": true,
   "panelShowNetwork": true,
+  "panelOrder": ["cpu", "memory", "storage", "network"],
   "cpuAlertPercent": 85,
   "memAlertPercent": 85,
   "diskAlertPercent": 90
@@ -71,10 +73,12 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
 | `showDisk` | boolean | `false` | Show or hide Storage (Disk) % & free space in the top bar pill. |
 | `showNetwork` | boolean | `true` | Show or hide download/upload bandwidth in the top bar pill. |
 | `showTemp` | boolean | `false` | Show or hide CPU temperature in the top bar pill alongside CPU %. |
+| `barOrder` | list / string | `["cpu", "memory", "disk", "network"]` | Custom order of metric slots on the top bar pill. |
 | `panelShowCpu` | boolean | `true` | Show or hide the CPU section in the overview popup panel. |
 | `panelShowMemory` | boolean | `true` | Show or hide the Memory section in the overview popup panel. |
 | `panelShowDisk` | boolean | `true` | Show or hide the Storage section in the overview popup panel. |
 | `panelShowNetwork` | boolean | `true` | Show or hide the Network section in the overview popup panel. |
+| `panelOrder` | list / string | `["cpu", "memory", "storage", "network"]` | Custom order of sections in the popup overview panel. |
 | `cpuAlertPercent` | integer | `85` | CPU % threshold to trigger urgent alert color (50 to 99). |
 | `memAlertPercent` | integer | `85` | Memory % threshold to trigger urgent alert color (50 to 99). |
 | `diskAlertPercent` | integer | `90` | Disk % threshold to trigger urgent alert color (50 to 99). |
