@@ -8,6 +8,7 @@ A native top bar widget and popup overview panel for Omarchy Linux displaying li
 
 - ⚡ **Zero-Dependency Native Collector**: Directly queries Linux `/proc` and `/sys` interfaces with pure POSIX shell and AWK. No Python daemon, Node.js runtime, or background services required (~15–20ms execution per tick).
 - 📈 **Real-Time Sparklines & History Timelines**: In-memory sliding window tracking with sub-millisecond rendering. Choose between minimalist monospace block sparklines (` ▂▃▄▅▆▇█`), micro-bars, or smooth area curves.
+- 🌐 **Adaptive Bandwidth Scaling & On-Demand Speedtest**: Configure network graph capacity against dynamic sliding-window traffic (`auto`), session peak records (`session-peak`), physical hardware link rates (`link-speed`), or fixed custom ceilings (`fixed`). Includes an integrated one-click `󰓅` Speedtest button with automatic Cloudflare CDN fallback.
 - 🎮 **Multi-Vendor GPU Load & VRAM Monitoring**: Supports NVIDIA (`nvidia-smi` with timeout protection), AMD (`gpu_busy_percent`), and Intel (`gt_act_freq_mhz`) graphics adapters in both the top bar and overview panel.
 - 📏 **Jitter-Free Fixed Layout (Zero Horizontal Shift)**: Each top bar metric slot uses calibrated fixed-width containers with right-aligned typography. The bar never shifts, bounces, or resizes when metric digits change length (e.g. going from `9%` to `10%` to `100%` or `<1 KB/s` to `12.5 MB/s`).
 - 🌡️ **Accurate CPU Package Temperature**: Automatically prioritizes dedicated CPU hardware sensors (Intel `coretemp`, AMD `k10temp`/`zenpower`, ARM SoC) over generic motherboard/ACPI ambient zones to report exact die temperatures matching `btop`.
@@ -31,7 +32,7 @@ A native top bar widget and popup overview panel for Omarchy Linux displaying li
 - **GPU Section (Optional)**: Embedded GPU load percentage, die temperature, progress bar, optional timeline history graph, and dedicated VRAM used / total metrics.
 - **Memory & Swap Section**: Used / total RAM, available RAM, optional timeline history graph, and swap space breakdown with visual progress bar.
 - **Storage Section**: Primary `$HOME` partition mount path, used / total disk capacity, free space remaining, optional timeline history graph, and utilization progress bar.
-- **Network Section**: Active network interface name, live traffic header, real-time download and upload transfer rates with dedicated sparklines directly below live speeds, and cumulative session data transfer totals at the bottom.
+- **Network Section**: Active network interface name, live traffic header, scale mode indicator, real-time download and upload transfer rates with dedicated sparklines directly below live speeds, cumulative session data transfer totals at the bottom, and an interactive **Speedtest button (`󰓅`)**.
 - **Section Reordering**: Set any section order you prefer (e.g. `["cpu", "network", "memory", "storage"]`).
 
 ### 3. Timeline History Styles & Sizing
@@ -53,6 +54,14 @@ Configure the vertical graph height uniformly across all sections:
 | **`"normal"`** | `20 px` | $2.5\times$ | **Default** — Balanced clarity and aesthetics |
 | **`"big"`** | `30 px` | $3.75\times$ | Expanded trend monitoring |
 | **`"huge"`** | `40 px` | $5.0\times$ | Maximum visibility ($5\times$ micro) |
+
+#### Bandwidth Scaling Modes (`networkScaleMode`)
+Control how 100% capacity is calculated for the download and upload timeline graphs:
+- **`"auto"`** *(Default)*: Auto-scales dynamically to the highest speed in the visible sliding window (best for viewing subtle traffic variations during normal browsing).
+- **`"session-peak"`**: Scales against the highest download/upload speed recorded since shell launch or reboot.
+- **`"link-speed"`**: Scales against the physical network interface link speed (e.g. `866 Mbps` on Wi-Fi, `1000 Mbps` on Gigabit Ethernet).
+- **`"fixed"`**: Scales against a fixed bandwidth limit configured via `networkMaxSpeed` (e.g. `"100M"`, `"500M"`, `"1G"`, `"12.5MB/s"`).
+- **Interactive Speedtest (`󰓅`)**: Clicking the speed gauge button in the overview panel runs a fast, non-intrusive 2–3s test and automatically calibrates the timeline scale to your measured connection speed!
 
 ### 4. Mouse & Keyboard Shortcuts
 - **Left-Click**: Toggle overview popup panel.
