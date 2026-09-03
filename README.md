@@ -110,6 +110,8 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
   "showMemoryHistory": false,
   "showDiskHistory": false,
   "showGpuHistory": false,
+  "networkScaleMode": "auto",
+  "networkMaxSpeed": "100M",
   "panelOrder": ["cpu", "memory", "storage", "network"],
   "cpuAlertPercent": 85,
   "gpuAlertPercent": 85,
@@ -141,6 +143,8 @@ The widget can be fully customized in `~/.config/omarchy/shell.json`:
 | `showMemoryHistory` | boolean | `false` | Show timeline sparkline/graph in the Memory overview section. |
 | `showDiskHistory` | boolean | `false` | Show timeline sparkline/graph in the Storage overview section. |
 | `showGpuHistory` | boolean | `false` | Show timeline sparkline/graph in the GPU overview section. |
+| `networkScaleMode` | string | `"auto"` | Bandwidth scaling mode: `"auto"` (sliding window peak), `"session-peak"` (highest speed since launch), `"link-speed"` (hardware interface link capacity), or `"fixed"` (scaled to `networkMaxSpeed`). |
+| `networkMaxSpeed` | string | `"100M"` | Fixed bandwidth ceiling used when `networkScaleMode` is `"fixed"` (e.g. `"100M"`, `"1G"`, `"50M"`, `"12.5MB/s"`). |
 | `panelOrder` | list / string | `["cpu", "memory", "storage", "network"]` | Custom order of sections in the popup overview panel. |
 | `cpuAlertPercent` | integer | `85` | CPU % threshold to trigger urgent alert color (50 to 99). |
 | `gpuAlertPercent` | integer | `85` | GPU % threshold to trigger urgent alert color (50 to 99). |

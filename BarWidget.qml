@@ -37,6 +37,13 @@ Panel {
   property bool showMemoryHistory: setting("showMemoryHistory", false)
   property bool showDiskHistory: setting("showDiskHistory", false)
   property bool showGpuHistory: setting("showGpuHistory", false)
+  property string networkScaleMode: setting("networkScaleMode", "auto")
+  property string networkMaxSpeed: setting("networkMaxSpeed", "100M")
+  property real speedtestMaxRx: 0
+  property real speedtestMaxTx: 0
+  property string speedtestSummary: ""
+  readonly property bool speedtestRunning: speedtestProc.running
+  readonly property string speedtestScriptPath: localPath(Qt.resolvedUrl("speedtest.sh"))
   property var barOrder: setting("barOrder", ["cpu", "memory", "disk", "network"])
   property var panelOrder: setting("panelOrder", ["cpu", "memory", "storage", "network"])
 
@@ -112,6 +119,27 @@ Panel {
     }
   }
 
+  Process {
+    id: speedtestProc
+    command: [root.speedtestScriptPath]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var lines = String(text || "").split("\n");
+        for (var i = 0; i < lines.length; i++) {
+          var parts = lines[i].split("\t");
+          if (parts.length >= 2) {
+            var k = parts[0].trim();
+            var v = parts[1].trim();
+            if (k === "speedtest_rx_bytes_sec") root.speedtestMaxRx = Model.safeNumber(v, 0);
+            else if (k === "speedtest_tx_bytes_sec") root.speedtestMaxTx = Model.safeNumber(v, 0);
+            else if (k === "speedtest_summary") root.speedtestSummary = v;
+          }
+        }
+      }
+    }
+  }
+
   Timer {
     id: procWatchdog
     interval: 2000
@@ -120,6 +148,18 @@ Panel {
     onTriggered: {
       if (statsProc.running) {
         statsProc.running = false
+      }
+    }
+  }
+
+  Timer {
+    id: speedtestWatchdog
+    interval: 15000
+    repeat: false
+    running: speedtestProc.running
+    onTriggered: {
+      if (speedtestProc.running) {
+        speedtestProc.running = false
       }
     }
   }
@@ -824,6 +864,7 @@ Panel {
 
       Row {
         width: parent.width
+        spacing: Style.space(6)
         Text {
           text: "NETWORK (" + root.stats.netIface + ")"
           textFormat: Text.PlainText
@@ -832,13 +873,38 @@ Panel {
           font.pixelSize: Style.font.caption
           font.bold: true
         }
-        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
+        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.children[3].implicitWidth - parent.spacing * 3); height: 1 }
         Text {
-          text: "Live Traffic"
+          text: root.speedtestRunning ? "Testing speed..." : (root.speedtestSummary ? root.speedtestSummary : (root.networkScaleMode === "session-peak" ? "Peak Scale" : (root.networkScaleMode === "link-speed" && root.stats.netLinkSpeedMbps > 0 ? (root.stats.netLinkSpeedMbps + "M Link") : (root.networkScaleMode === "fixed" ? (root.networkMaxSpeed + " Max") : "Auto Scale"))))
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: root.speedtestRunning ? Color.accent : Qt.darker(root.barForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.caption
+        }
+        Rectangle {
+          width: Style.space(18)
+          height: Style.space(16)
+          radius: Style.space(3)
+          color: stMouse.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12) : "transparent"
+          border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.2)
+          border.width: 1
+          Text {
+            anchors.centerIn: parent
+            text: "󰓅"
+            textFormat: Text.PlainText
+            font.family: root.barFontFamily
+            font.pixelSize: Style.font.caption
+            color: root.speedtestRunning ? Color.accent : root.barForeground
+          }
+          MouseArea {
+            id: stMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              if (!speedtestProc.running) speedtestProc.running = true;
+            }
+          }
         }
       }
 
@@ -876,7 +942,7 @@ Panel {
             HistoryView {
               values: root.stats.rxHistory
               minVal: 0
-              maxVal: Math.max.apply(null, [1024].concat(root.stats.rxHistory))
+              maxVal: Model.resolveNetworkMaxVal(root.speedtestMaxRx > 0 ? "speedtest" : root.networkScaleMode, root.stats.rxHistory, root.stats.sessionPeakRx, root.stats.netLinkSpeedMbps, root.networkMaxSpeed, root.speedtestMaxRx)
               graphColor: Color.accent
               visible: root.showNetworkHistory && root.stats.rxHistory.length > 1
             }
@@ -920,7 +986,7 @@ Panel {
             HistoryView {
               values: root.stats.txHistory
               minVal: 0
-              maxVal: Math.max.apply(null, [1024].concat(root.stats.txHistory))
+              maxVal: Model.resolveNetworkMaxVal(root.speedtestMaxTx > 0 ? "speedtest" : root.networkScaleMode, root.stats.txHistory, root.stats.sessionPeakTx, root.stats.netLinkSpeedMbps, root.networkMaxSpeed, root.speedtestMaxTx)
               graphColor: Qt.lighter(Color.accent, 1.2)
               visible: root.showNetworkHistory && root.stats.txHistory.length > 1
             }

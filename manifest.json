@@ -43,6 +43,8 @@
       "showMemoryHistory": false,
       "showDiskHistory": false,
       "showGpuHistory": false,
+      "networkScaleMode": "auto",
+      "networkMaxSpeed": "100M",
       "barOrder": ["cpu", "memory", "disk", "network"],
       "panelOrder": ["cpu", "memory", "storage", "network"]
     },
@@ -179,6 +181,18 @@
         "type": "boolean",
         "label": "Show timeline sparkline in GPU panel",
         "defaultValue": false
+      },
+      {
+        "key": "networkScaleMode",
+        "type": "string",
+        "label": "Network history scale mode ('auto', 'session-peak', 'link-speed', 'fixed')",
+        "defaultValue": "auto"
+      },
+      {
+        "key": "networkMaxSpeed",
+        "type": "string",
+        "label": "Fixed network maximum speed (e.g. '100M', '1G', '50M', '12.5MB/s')",
+        "defaultValue": "100M"
       },
       {
         "key": "panelOrder",

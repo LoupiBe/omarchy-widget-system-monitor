@@ -41,6 +41,9 @@ function createInitialState() {
     rxSpeed: 0,
     txSpeed: 0,
     netIface: "eth0",
+    netLinkSpeedMbps: 0,
+    sessionPeakRx: 0,
+    sessionPeakTx: 0,
     diskTotalKb: 0,
     diskUsedKb: 0,
     diskAvailKb: 0,
@@ -190,6 +193,7 @@ function parseStats(raw, prevState, nowMs, historyLimit) {
   var netRx = safeNumber(kv["net_rx_bytes"], state.netRxBytes || 0);
   var netTx = safeNumber(kv["net_tx_bytes"], state.netTxBytes || 0);
   next.netIface = sanitizeString(kv["net_iface"] !== undefined ? kv["net_iface"] : state.netIface, 32, (state && state.netIface) || "eth0");
+  next.netLinkSpeedMbps = Math.max(0, safeNumber(kv["net_link_speed_mbps"], state.netLinkSpeedMbps || 0));
 
   if (state.initialized && state.timestamp > 0 && now > state.timestamp) {
     var timeDeltaSec = (now - state.timestamp) / 1000;
@@ -205,6 +209,8 @@ function parseStats(raw, prevState, nowMs, historyLimit) {
   }
   next.netRxBytes = Math.max(0, netRx);
   next.netTxBytes = Math.max(0, netTx);
+  next.sessionPeakRx = Math.max(safeNumber(state.sessionPeakRx, 0), next.rxSpeed || 0);
+  next.sessionPeakTx = Math.max(safeNumber(state.sessionPeakTx, 0), next.txSpeed || 0);
 
   // 5. Load, uptime, info
   next.load1 = sanitizeString(kv["load_1m"] !== undefined ? kv["load_1m"] : state.load1, 16, (state && state.load1) || "0.00");
@@ -343,6 +349,63 @@ function getHistoryHeight(sizeName) {
   }
 }
 
+function parseBandwidthString(str) {
+  if (!str) return 0;
+  var s = String(str).trim().toLowerCase();
+  var num = parseFloat(s);
+  if (isNaN(num) || num <= 0) return 0;
+
+  if (s.indexOf("gb/s") !== -1 || s.indexOf("gbyte") !== -1) {
+    return num * 1024 * 1024 * 1024;
+  }
+  if (s.indexOf("mb/s") !== -1 || s.indexOf("mbyte") !== -1) {
+    return num * 1024 * 1024;
+  }
+  if (s.indexOf("kb/s") !== -1 || s.indexOf("kbyte") !== -1) {
+    return num * 1024;
+  }
+  if (s.indexOf("g") !== -1) {
+    return (num * 1000 * 1000 * 1000) / 8;
+  }
+  if (s.indexOf("m") !== -1) {
+    return (num * 1000 * 1000) / 8;
+  }
+  if (s.indexOf("k") !== -1) {
+    return (num * 1000) / 8;
+  }
+  return num;
+}
+
+function resolveNetworkMaxVal(mode, historyArr, sessionPeak, linkSpeedMbps, fixedString, speedtestMax) {
+  var m = String(mode || "auto").toLowerCase().trim();
+  var arr = Array.isArray(historyArr) ? historyArr : [];
+  var localPeak = arr.length > 0 ? Math.max.apply(null, arr) : 1024;
+  if (!isFinite(localPeak) || localPeak < 1024) localPeak = 1024;
+
+  if (m === "session-peak") {
+    var sPeak = safeNumber(sessionPeak, 0);
+    return Math.max(1024, localPeak, sPeak);
+  }
+  if (m === "link-speed") {
+    var spd = safeNumber(linkSpeedMbps, 0);
+    if (spd > 0) {
+      return (spd * 1000 * 1000) / 8;
+    }
+    return localPeak;
+  }
+  if (m === "fixed") {
+    var fixedVal = parseBandwidthString(fixedString);
+    if (fixedVal > 0) return fixedVal;
+    return localPeak;
+  }
+  if (m === "speedtest") {
+    var stMax = safeNumber(speedtestMax, 0);
+    if (stMax > 0) return stMax;
+    return localPeak;
+  }
+  return localPeak;
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     createInitialState: createInitialState,
@@ -350,6 +413,8 @@ if (typeof module !== "undefined") {
     generateSparkline: generateSparkline,
     updateHistory: updateHistory,
     getHistoryHeight: getHistoryHeight,
+    parseBandwidthString: parseBandwidthString,
+    resolveNetworkMaxVal: resolveNetworkMaxVal,
     formatSpeed: formatSpeed,
     formatSpeedCompact: formatSpeedCompact,
     formatBytes: formatBytes,

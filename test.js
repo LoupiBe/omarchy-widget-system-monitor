@@ -608,6 +608,63 @@ test("Model.getHistoryHeight returns proportional heights for 5 size tiers", () 
   assert.strictEqual(Model.getHistoryHeight("unknown"), 20);
 });
 
+test("Model.parseBandwidthString converts bandwidth strings accurately", () => {
+  assert.strictEqual(Model.parseBandwidthString("100M"), 12500000);
+  assert.strictEqual(Model.parseBandwidthString("1G"), 125000000);
+  assert.strictEqual(Model.parseBandwidthString("500K"), 62500);
+  assert.strictEqual(Model.parseBandwidthString("10MB/s"), 10485760);
+  assert.strictEqual(Model.parseBandwidthString("1GB/s"), 1073741824);
+  assert.strictEqual(Model.parseBandwidthString(""), 0);
+  assert.strictEqual(Model.parseBandwidthString(null), 0);
+  assert.strictEqual(Model.parseBandwidthString("invalid"), 0);
+});
+
+test("Model.resolveNetworkMaxVal computes correct max limits across all modes", () => {
+  const history = [1000, 5000, 20000];
+  
+  // auto: highest in history
+  assert.strictEqual(Model.resolveNetworkMaxVal("auto", history, 50000, 1000, "100M", 0), 20000);
+  
+  // session-peak: highest seen since session start
+  assert.strictEqual(Model.resolveNetworkMaxVal("session-peak", history, 50000, 1000, "100M", 0), 50000);
+  
+  // link-speed: 1000 Mbps = 125,000,000 bytes/sec
+  assert.strictEqual(Model.resolveNetworkMaxVal("link-speed", history, 50000, 1000, "100M", 0), 125000000);
+  
+  // fixed: 100M = 12,500,000 bytes/sec
+  assert.strictEqual(Model.resolveNetworkMaxVal("fixed", history, 50000, 1000, "100M", 0), 12500000);
+  
+  // speedtest: 75,000,000 bytes/sec
+  assert.strictEqual(Model.resolveNetworkMaxVal("speedtest", history, 50000, 1000, "100M", 75000000), 75000000);
+});
+
+test("Model.parseStats correctly parses link speed and tracks session peaks", () => {
+  const raw1 = [
+    "net_rx_bytes\t1000000",
+    "net_tx_bytes\t500000",
+    "net_iface\twlp58s0",
+    "net_link_speed_mbps\t866"
+  ].join("\n");
+  
+  const s1 = Model.parseStats(raw1, null, 1000);
+  assert.strictEqual(s1.netLinkSpeedMbps, 866);
+  assert.strictEqual(s1.sessionPeakRx, 0);
+
+  const raw2 = [
+    "net_rx_bytes\t2000000",
+    "net_tx_bytes\t1000000",
+    "net_iface\twlp58s0",
+    "net_link_speed_mbps\t866"
+  ].join("\n");
+  
+  // 1 second later: 1,000,000 bytes/sec
+  const s2 = Model.parseStats(raw2, s1, 2000);
+  assert.strictEqual(s2.rxSpeed, 1000000);
+  assert.strictEqual(s2.sessionPeakRx, 1000000);
+  assert.strictEqual(s2.sessionPeakTx, 500000);
+});
+
+
 
 
 

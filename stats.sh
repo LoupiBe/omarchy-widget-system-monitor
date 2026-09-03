@@ -38,7 +38,7 @@ collect_metrics() {
   ' /proc/meminfo 2>/dev/null
 
   # 3. Network metrics from /proc/net/dev (sum non-virtual active interfaces, max 32 chars for iface)
-  awk '
+  net_out=$(awk '
     NR > 2 {
       sub(/:/, " ")
       iface = $1
@@ -56,7 +56,26 @@ collect_metrics() {
       if (active == "") active = "eth0"
       printf "net_rx_bytes\t%.0f\nnet_tx_bytes\t%.0f\nnet_iface\t%s\n", (rx ? rx : 0), (tx ? tx : 0), substr(active, 1, 32)
     }
-  ' /proc/net/dev 2>/dev/null
+  ' /proc/net/dev 2>/dev/null)
+  [ -n "$net_out" ] && echo "$net_out"
+
+  # 3b. Network link speed (Mbps)
+  act_if=$(echo "$net_out" | awk -F'\t' '$1 == "net_iface" {print $2}')
+  link_speed=0
+  if [ -n "$act_if" ]; then
+    if [ -f "/sys/class/net/$act_if/speed" ] && read -r -t 0.05 spd < "/sys/class/net/$act_if/speed" 2>/dev/null; then
+      if [ -n "$spd" ] && [ "$spd" -gt 0 ] 2>/dev/null; then
+        link_speed="$spd"
+      fi
+    fi
+    if [ "$link_speed" -le 0 ] 2>/dev/null && command -v iw >/dev/null 2>&1; then
+      iw_bitrate=$(iw dev "$act_if" link 2>/dev/null | awk '/tx bitrate:/ {print int($3); exit}')
+      if [ -n "$iw_bitrate" ] && [ "$iw_bitrate" -gt 0 ] 2>/dev/null; then
+        link_speed="$iw_bitrate"
+      fi
+    fi
+  fi
+  printf "net_link_speed_mbps\t%d\n" "$link_speed"
 
   # 4. Load average & Uptime
   awk '{ print "load_1m\t" substr($1, 1, 16) "\nload_5m\t" substr($2, 1, 16) "\nload_15m\t" substr($3, 1, 16) }' /proc/loadavg 2>/dev/null
