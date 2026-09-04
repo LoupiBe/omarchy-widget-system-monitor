@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # speedtest.sh - Lightweight, bounded bandwidth measurement helper for System Monitor
 set -e
+set -o pipefail
+LC_ALL=C
+PATH=/usr/bin:/bin:$PATH
 
 rx_bytes_sec=0
 tx_bytes_sec=0
 
 # 1. Prefer speedtest-cli if installed on system
 if command -v speedtest-cli >/dev/null 2>&1; then
-  out=$(timeout 12 speedtest-cli --simple 2>/dev/null || true)
+  out=$(timeout 10 speedtest-cli --simple 2>/dev/null || true)
   if [ -n "$out" ]; then
     dl_mbit=$(echo "$out" | awk '/Download:/ {print $2}')
     ul_mbit=$(echo "$out" | awk '/Upload:/ {print $2}')
@@ -28,6 +31,9 @@ fi
 dl_mbps=$(awk -v b="$rx_bytes_sec" 'BEGIN { printf "%.1f", (b * 8) / 1000000 }')
 ul_mbps=$(awk -v b="$tx_bytes_sec" 'BEGIN { printf "%.1f", (b * 8) / 1000000 }')
 
-printf "speedtest_rx_bytes_sec\t%s\n" "$rx_bytes_sec"
-printf "speedtest_tx_bytes_sec\t%s\n" "$tx_bytes_sec"
-printf "speedtest_summary\t↓%s ↑%s Mbps\n" "$dl_mbps" "$ul_mbps"
+# Strictly bound producer output
+{
+  printf "speedtest_rx_bytes_sec\t%s\n" "$rx_bytes_sec"
+  printf "speedtest_tx_bytes_sec\t%s\n" "$tx_bytes_sec"
+  printf "speedtest_summary\t↓%s ↑%s Mbps\n" "$dl_mbps" "$ul_mbps"
+} | head -n 8 | head -c 1024

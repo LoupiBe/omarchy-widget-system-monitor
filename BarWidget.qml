@@ -110,6 +110,11 @@ Panel {
     }
   }
 
+  Component.onDestruction: {
+    if (statsProc.running) statsProc.running = false
+    if (speedtestProc.running) speedtestProc.running = false
+  }
+
   Process {
     id: statsProc
     command: [root.statsScriptPath]
@@ -133,7 +138,7 @@ Panel {
             var v = parts[1].trim();
             if (k === "speedtest_rx_bytes_sec") root.speedtestMaxRx = Model.safeNumber(v, 0);
             else if (k === "speedtest_tx_bytes_sec") root.speedtestMaxTx = Model.safeNumber(v, 0);
-            else if (k === "speedtest_summary") root.speedtestSummary = v;
+            else if (k === "speedtest_summary") root.speedtestSummary = Model.sanitizeString(v, 32, "");
           }
         }
       }
