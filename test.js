@@ -664,6 +664,54 @@ test("Model.parseStats correctly parses link speed and tracks session peaks", ()
   assert.strictEqual(s2.sessionPeakTx, 500000);
 });
 
+test("Marketplace Security Review: speedtest.sh is bounded, safe, and adheres to environment constraints", () => {
+  const scriptPath = path.join(__dirname, "speedtest.sh");
+  assert.ok(fs.existsSync(scriptPath), "speedtest.sh must exist");
+  
+  const scriptContent = fs.readFileSync(scriptPath, "utf8");
+  assert.ok(scriptContent.includes("set -e"), "Must have set -e");
+  assert.ok(scriptContent.includes("set -o pipefail"), "Must have set -o pipefail");
+  assert.ok(scriptContent.includes("LC_ALL=C"), "Must enforce standard locale LC_ALL=C");
+  assert.ok(scriptContent.includes("PATH=/usr/bin:/bin"), "Must specify fixed PATH");
+  assert.ok(scriptContent.includes("head -c 1024"), "Must strictly bound output to <= 1024 bytes");
+});
+
+test("Marketplace Security Review: BarWidget.qml lifecycle, watchdogs, and 100% PlainText sinks", () => {
+  const qmlPath = path.join(__dirname, "BarWidget.qml");
+  const content = fs.readFileSync(qmlPath, "utf8");
+
+  // 1. Process watchdogs
+  assert.ok(content.includes("id: procWatchdog"), "Must contain procWatchdog for statsProc");
+  assert.ok(content.includes("id: speedtestWatchdog"), "Must contain speedtestWatchdog for speedtestProc");
+  assert.ok(content.includes("statsProc.running = false"), "Watchdog must be able to cancel statsProc");
+  assert.ok(content.includes("speedtestProc.running = false"), "Watchdog must be able to cancel speedtestProc");
+
+  // 2. Component destruction cleanup
+  assert.ok(content.includes("Component.onDestruction:"), "Must declare Component.onDestruction");
+  assert.ok(
+    content.includes("Component.onDestruction:") &&
+    content.includes("if (statsProc.running) statsProc.running = false") &&
+    content.includes("if (speedtestProc.running) speedtestProc.running = false"),
+    "Component.onDestruction must safely stop in-flight child processes"
+  );
+
+  // 3. 100% PlainText text sinks
+  const textMatches = content.split(/\bText\s*\{/g).slice(1);
+  assert.ok(textMatches.length >= 40, `Expected at least 40 Text blocks, found ${textMatches.length}`);
+
+  let missingPlainText = 0;
+  for (let i = 0; i < textMatches.length; i++) {
+    // Extract up to closing brace of this Text item
+    const block = textMatches[i].split("}")[0];
+    if (!block.includes("textFormat: Text.PlainText")) {
+      missingPlainText++;
+      console.error(`Missing PlainText in Text component #${i + 1}:\n${block}`);
+    }
+  }
+  assert.strictEqual(missingPlainText, 0, `All Text blocks in BarWidget.qml must specify textFormat: Text.PlainText`);
+});
+
+
 
 
 

@@ -24,7 +24,41 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Validate Shell Script Syntax
-        run: bash -n stats.sh
+        run: |
+          bash -n stats.sh
+          bash -n speedtest.sh
 
-      - name: Run Test Suite
+      - name: Validate Manifest JSON
+        run: |
+          node -e '
+            const manifest = JSON.parse(require("fs").readFileSync("manifest.json", "utf8"));
+            if (!manifest.id || !manifest.version || !manifest.entryPoints) {
+              console.error("Invalid manifest structure");
+              process.exit(1);
+            }
+            console.log("Manifest valid: " + manifest.id + " v" + manifest.version);
+          '
+
+      - name: Verify 100% PlainText QML Text Sinks
+        run: |
+          node -e '
+            const fs = require("fs");
+            const content = fs.readFileSync("BarWidget.qml", "utf8");
+            const textBlocks = content.split(/\bText\s*\{/g).slice(1);
+            let missing = 0;
+            textBlocks.forEach((block, idx) => {
+              const body = block.split("}")[0];
+              if (!body.includes("textFormat: Text.PlainText")) {
+                console.error(`Missing PlainText in Text block #${idx + 1}`);
+                missing++;
+              }
+            });
+            if (missing > 0) {
+              console.error(`Found ${missing} Text blocks without explicit PlainText`);
+              process.exit(1);
+            }
+            console.log(`Verified ${textBlocks.length} Text components have explicit PlainText format.`);
+          '
+
+      - name: Run Security & Regression Test Suite
         run: node test.js
