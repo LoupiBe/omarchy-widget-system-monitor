@@ -80,6 +80,9 @@ Panel {
   readonly property int barSize: bar ? bar.barSize : Style.bar.sizeHorizontal
   readonly property string statsScriptPath: localPath(Qt.resolvedUrl("stats.sh"))
   readonly property color barForeground: bar ? bar.barForeground : Color.foreground
+  // Popup text follows the theme, like the built-in panels. barForeground can flip
+  // dark when the bar is transparent over a light wallpaper.
+  readonly property color panelForeground: bar ? bar.foreground : Color.foreground
   readonly property string barFontFamily: bar ? bar.fontFamily : Style.font.family
 
   function localPath(url) {
@@ -524,7 +527,7 @@ Panel {
         Text {
           text: "CPU LOAD"
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.caption
           font.bold: true
@@ -533,7 +536,7 @@ Panel {
         Text {
           text: root.stats.cpuPercent + "%"
           textFormat: Text.PlainText
-          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
+          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.panelForeground)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
           font.bold: true
@@ -547,13 +550,13 @@ Panel {
         Rectangle {
           anchors.fill: parent
           radius: height / 2
-          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+          color: Qt.rgba(root.panelForeground.r, root.panelForeground.g, root.panelForeground.b, 0.12)
         }
         Rectangle {
           height: parent.height
           radius: height / 2
           width: Math.max(height, parent.width * (root.stats.cpuPercent / 100))
-          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
+          color: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.panelForeground)
           Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 200 } }
         }
@@ -564,7 +567,7 @@ Panel {
         values: root.stats.cpuHistory
         minVal: 0
         maxVal: 100
-        graphColor: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.barForeground)
+        graphColor: root.stats.cpuPercent >= root.cpuAlertPercent ? Color.urgent : (root.stats.cpuPercent >= 65 ? Color.accent : root.panelForeground)
         visible: root.showCpuHistory && root.stats.cpuHistory.length > 1
       }
 
@@ -578,7 +581,9 @@ Panel {
           model: root.stats.cores
           delegate: Item {
             required property var modelData
-            width: Math.max(Style.space(32), (parent.width - (Math.min(8, root.stats.cores.length) - 1) * Style.space(4)) / Math.min(8, root.stats.cores.length))
+            // 6 columns above 8 cores so "C24 100%" fits without eliding.
+            readonly property int cols: root.stats.cores.length > 8 ? 6 : root.stats.cores.length
+            width: Math.max(Style.space(32), (parent.width - (cols - 1) * Style.space(4)) / cols)
             height: Style.space(20)
 
             Column {
@@ -589,7 +594,7 @@ Panel {
                 textFormat: Text.PlainText
                 font.pixelSize: Style.space(9)
                 font.family: root.barFontFamily
-                color: Qt.darker(root.barForeground, 1.3)
+                color: Qt.darker(root.panelForeground, 1.3)
                 elide: Text.ElideRight
                 width: parent.width
               }
@@ -597,12 +602,12 @@ Panel {
                 width: parent.width
                 height: Style.space(3)
                 radius: height / 2
-                color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                color: Qt.rgba(root.panelForeground.r, root.panelForeground.g, root.panelForeground.b, 0.12)
                 Rectangle {
                   height: parent.height
                   radius: height / 2
                   width: Math.max(height, parent.width * (modelData.percent / 100))
-                  color: modelData.percent >= root.cpuAlertPercent ? Color.urgent : (modelData.percent >= 65 ? Color.accent : root.barForeground)
+                  color: modelData.percent >= root.cpuAlertPercent ? Color.urgent : (modelData.percent >= 65 ? Color.accent : root.panelForeground)
                 }
               }
             }
@@ -616,7 +621,7 @@ Panel {
         Text {
           text: "Load: " + root.stats.load1 + ", " + root.stats.load5 + ", " + root.stats.load15
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
         }
@@ -624,7 +629,7 @@ Panel {
         Text {
           text: root.stats.coreCount + " Cores"
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
         }
@@ -639,7 +644,7 @@ Panel {
         Rectangle {
           width: parent.width
           height: 1
-          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+          color: Qt.rgba(root.panelForeground.r, root.panelForeground.g, root.panelForeground.b, 0.08)
         }
 
         Row {
@@ -647,16 +652,18 @@ Panel {
           Text {
             text: "GPU LOAD" + (root.stats.gpuName ? " (" + root.stats.gpuName + ")" : "")
             textFormat: Text.PlainText
-            color: Qt.darker(root.barForeground, 1.4)
+            width: Math.min(implicitWidth, parent.width - parent.children[2].implicitWidth - Style.space(8))
+            elide: Text.ElideRight
+            color: Qt.darker(root.panelForeground, 1.4)
             font.family: root.barFontFamily
             font.pixelSize: Style.font.caption
             font.bold: true
           }
-          Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth); height: 1 }
+          Item { width: Math.max(0, parent.width - parent.children[0].width - parent.children[2].implicitWidth); height: 1 }
           Text {
             text: root.stats.gpuPercent + "%" + (root.stats.gpuTemp ? " · " + root.stats.gpuTemp : "")
             textFormat: Text.PlainText
-            color: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.barForeground)
+            color: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.panelForeground)
             font.family: root.barFontFamily
             font.pixelSize: Style.font.bodySmall
             font.bold: true
@@ -670,13 +677,13 @@ Panel {
           Rectangle {
             anchors.fill: parent
             radius: height / 2
-            color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+            color: Qt.rgba(root.panelForeground.r, root.panelForeground.g, root.panelForeground.b, 0.12)
           }
           Rectangle {
             height: parent.height
             radius: height / 2
             width: Math.max(height, parent.width * (root.stats.gpuPercent / 100))
-            color: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.barForeground)
+            color: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.panelForeground)
             Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
             Behavior on color { ColorAnimation { duration: 200 } }
           }
@@ -687,7 +694,7 @@ Panel {
           values: root.stats.gpuHistory
           minVal: 0
           maxVal: 100
-          graphColor: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.barForeground)
+          graphColor: root.stats.gpuPercent >= root.gpuAlertPercent ? Color.urgent : (root.stats.gpuPercent >= 65 ? Color.accent : root.panelForeground)
           visible: root.showGpuHistory && root.stats.gpuHistory.length > 1
         }
 
@@ -698,7 +705,7 @@ Panel {
           Text {
             text: "VRAM: " + root.stats.gpuMemUsedMb + " MB / " + root.stats.gpuMemTotalMb + " MB"
             textFormat: Text.PlainText
-            color: Qt.darker(root.barForeground, 1.4)
+            color: Qt.darker(root.panelForeground, 1.4)
             font.family: root.barFontFamily
             font.pixelSize: Style.font.bodySmall
           }
@@ -718,7 +725,7 @@ Panel {
         Text {
           text: "MEMORY"
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.caption
           font.bold: true
@@ -727,7 +734,7 @@ Panel {
         Text {
           text: Math.round(root.stats.memPercent) + "% (" + Model.formatKb(root.stats.memUsedKb) + " / " + Model.formatKb(root.stats.memTotalKb) + ")"
           textFormat: Text.PlainText
-          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
+          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.panelForeground)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
           font.bold: true
@@ -741,13 +748,13 @@ Panel {
         Rectangle {
           anchors.fill: parent
           radius: height / 2
-          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+          color: Qt.rgba(root.panelForeground.r, root.panelForeground.g, root.panelForeground.b, 0.12)
         }
         Rectangle {
           height: parent.height
           radius: height / 2
           width: Math.max(height, parent.width * (root.stats.memPercent / 100))
-          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
+          color: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.panelForeground)
           Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 200 } }
         }
@@ -758,7 +765,7 @@ Panel {
         values: root.stats.memHistory
         minVal: 0
         maxVal: 100
-        graphColor: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.barForeground)
+        graphColor: root.stats.memPercent >= root.memAlertPercent ? Color.urgent : (root.stats.memPercent >= 70 ? Color.accent : root.panelForeground)
         visible: root.showMemoryHistory && root.stats.memHistory.length > 1
       }
 
@@ -768,7 +775,7 @@ Panel {
         Text {
           text: "Avail: " + Model.formatKb(root.stats.memAvailKb)
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
         }
@@ -776,7 +783,7 @@ Panel {
         Text {
           text: "Swap: " + Model.formatKb(root.stats.swapUsedKb) + " / " + Model.formatKb(root.stats.swapTotalKb)
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
         }
@@ -795,7 +802,7 @@ Panel {
         Text {
           text: "STORAGE (" + (root.stats.diskMount || "$HOME") + ")"
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.caption
           font.bold: true
@@ -804,7 +811,7 @@ Panel {
         Text {
           text: root.stats.diskPercent + "% (" + Model.formatKb(root.stats.diskUsedKb) + " / " + Model.formatKb(root.stats.diskTotalKb) + ")"
           textFormat: Text.PlainText
-          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.panelForeground
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
           font.bold: true
@@ -818,13 +825,13 @@ Panel {
         Rectangle {
           anchors.fill: parent
           radius: height / 2
-          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+          color: Qt.rgba(root.panelForeground.r, root.panelForeground.g, root.panelForeground.b, 0.12)
         }
         Rectangle {
           height: parent.height
           radius: height / 2
           width: Math.max(height, parent.width * (root.stats.diskPercent / 100))
-          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+          color: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.panelForeground
           Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 200 } }
         }
@@ -835,7 +842,7 @@ Panel {
         values: root.stats.diskHistory
         minVal: 0
         maxVal: 100
-        graphColor: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.barForeground
+        graphColor: root.stats.diskPercent >= root.diskAlertPercent ? Color.urgent : root.panelForeground
         visible: root.showDiskHistory && root.stats.diskHistory.length > 1
       }
 
@@ -845,7 +852,7 @@ Panel {
         Text {
           text: "Free: " + Model.formatKb(root.stats.diskAvailKb)
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
         }
@@ -853,7 +860,7 @@ Panel {
         Text {
           text: "Used: " + Model.formatKb(root.stats.diskUsedKb)
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.bodySmall
         }
@@ -873,16 +880,16 @@ Panel {
         Text {
           text: "NETWORK (" + root.stats.netIface + ")"
           textFormat: Text.PlainText
-          color: Qt.darker(root.barForeground, 1.4)
+          color: Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.caption
           font.bold: true
         }
-        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.children[3].implicitWidth - parent.spacing * 3); height: 1 }
+        Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.children[3].width - parent.spacing * 3); height: 1 }
         Text {
           text: root.speedtestRunning ? "Testing speed..." : (root.speedtestSummary ? root.speedtestSummary : (root.networkScaleMode === "session-peak" ? "Peak Scale" : (root.networkScaleMode === "link-speed" && root.stats.netLinkSpeedMbps > 0 ? (root.stats.netLinkSpeedMbps + "M Link") : (root.networkScaleMode === "fixed" ? (root.networkMaxSpeed + " Max") : "Auto Scale"))))
           textFormat: Text.PlainText
-          color: root.speedtestRunning ? Color.accent : Qt.darker(root.barForeground, 1.4)
+          color: root.speedtestRunning ? Color.accent : Qt.darker(root.panelForeground, 1.4)
           font.family: root.barFontFamily
           font.pixelSize: Style.font.caption
         }
@@ -890,8 +897,8 @@ Panel {
           width: Style.space(18)
           height: Style.space(16)
           radius: Style.space(3)
-          color: stMouse.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12) : "transparent"
-          border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.2)
+          color: stMouse.containsMouse ? Qt.rgba(root.panelForeground.r, root.panelForeground.g, root.panelForeground.b, 0.12) : "transparent"
+          border.color: Qt.rgba(root.panelForeground.r, root.panelForeground.g, root.panelForeground.b, 0.2)
           border.width: 1
           Text {
             anchors.centerIn: parent
@@ -899,7 +906,7 @@ Panel {
             textFormat: Text.PlainText
             font.family: root.barFontFamily
             font.pixelSize: Style.font.caption
-            color: root.speedtestRunning ? Color.accent : root.barForeground
+            color: root.speedtestRunning ? Color.accent : root.panelForeground
           }
           MouseArea {
             id: stMouse
@@ -938,7 +945,7 @@ Panel {
               Text {
                 text: Model.formatSpeed(root.stats.rxSpeed)
                 textFormat: Text.PlainText
-                color: root.barForeground
+                color: root.panelForeground
                 font.family: root.barFontFamily
                 font.pixelSize: Style.font.body
                 font.bold: true
@@ -954,7 +961,7 @@ Panel {
             Text {
               text: "Total: " + Model.formatBytes(root.stats.netRxBytes)
               textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
+              color: Qt.darker(root.panelForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
             }
@@ -982,7 +989,7 @@ Panel {
               Text {
                 text: Model.formatSpeed(root.stats.txSpeed)
                 textFormat: Text.PlainText
-                color: root.barForeground
+                color: root.panelForeground
                 font.family: root.barFontFamily
                 font.pixelSize: Style.font.body
                 font.bold: true
@@ -998,7 +1005,7 @@ Panel {
             Text {
               text: "Total: " + Model.formatBytes(root.stats.netTxBytes)
               textFormat: Text.PlainText
-              color: Qt.darker(root.barForeground, 1.4)
+              color: Qt.darker(root.panelForeground, 1.4)
               font.family: root.barFontFamily
               font.pixelSize: Style.font.bodySmall
             }
@@ -1115,7 +1122,7 @@ Panel {
               Text {
                 text: "System Monitor"
                 textFormat: Text.PlainText
-                color: root.barForeground
+                color: root.panelForeground
                 font.family: root.barFontFamily
                 font.pixelSize: Style.font.title
                 font.bold: true
@@ -1123,7 +1130,7 @@ Panel {
               Text {
                 text: (root.stats.cpuTemp ? root.stats.cpuTemp + " · " : "") + (root.stats.uptime ? "Uptime " + root.stats.uptime : "")
                 textFormat: Text.PlainText
-                color: Qt.darker(root.barForeground, 1.4)
+                color: Qt.darker(root.panelForeground, 1.4)
                 font.family: root.barFontFamily
                 font.pixelSize: Style.font.caption
               }
@@ -1151,7 +1158,7 @@ Panel {
             spacing: Style.space(10)
 
             PanelSeparator {
-              foreground: root.barForeground
+              foreground: root.panelForeground
             }
 
             Loader {
